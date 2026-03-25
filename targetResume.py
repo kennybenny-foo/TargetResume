@@ -17,9 +17,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
-MONGODB_URI = os.environ.get("MONGODB_URI")
-if not MONGODB_URI:
-    raise ValueError("MONGODB_URI is not set")
+MONGODB_URI = "mongodb+srv://kennymejia10_db_user:ThcYfzfODI0mBDS3@targetresume.hha4pea.mongodb.net/?appName=TargetResume"
 
 client = MongoClient(MONGODB_URI)
 
