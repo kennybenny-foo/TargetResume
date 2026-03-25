@@ -2,6 +2,7 @@ import io
 import os
 import json
 
+
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from pymongo import MongoClient
@@ -10,6 +11,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key")
