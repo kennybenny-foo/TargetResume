@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up | TargetResume</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-bar {
+      background: #dfe7e1;
+      border-bottom: 1px solid #d2ddd4;
+      padding: 18px 40px;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      width: fit-content;
+      text-decoration: none;
+    }
+
+    .logo {
+      font-family: "Poppins", sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: #0f172a;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #5f6f63;
+      margin-top: 2px;
+    }
+
+    .page-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border: 1px solid #e3ece4;
+      border-radius: 24px;
+      padding: 34px 30px;
+      box-shadow: 0 14px 32px rgba(95, 138, 102, 0.08);
+    }
+
+    .auth-card h1 {
+      font-size: 2rem;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .auth-card p {
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid #d6e0d7;
+      background: #ffffff;
+      font-size: 0.97rem;
+      color: #1e293b;
+      transition: 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #6b8f71;
+      box-shadow: 0 0 0 4px rgba(107, 143, 113, 0.14);
+    }
+
+    .primary-btn {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 18px;
+      background: #5f8a66;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+      margin-top: 6px;
+    }
+
+    .primary-btn:hover {
+      background: #4d7354;
+      transform: translateY(-1px);
+    }
+
+    .bottom-text {
+      margin-top: 22px;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+
+    .bottom-text a {
+      color: #4d7354;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .bottom-text a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .top-bar {
+        padding: 18px 20px;
+      }
+
+      .auth-card {
+        padding: 28px 22px;
+      }
+
+      .logo {
+        font-size: 2.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <a href="/dashboard" class="brand">
+      <span class="logo">TargetResume</span>
+      <span class="tagline">AI-Assisted Resume Builder</span>
+    </a>
+  </header>
+
+  <main class="page-wrap">
+    <section class="auth-card">
+      <h1>Create your account</h1>
+      <p>Sign up to manage your profile, build tailored resumes, and track applications.</p>
+
+      <form action="/signup" method="POST">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Create a password" required>
+        </div>
+
+        <button type="submit" class="primary-btn">Create Account</button>
+      </form>
+
+      <div class="bottom-text">
+        Already have an account? <a href="/login">Log in</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

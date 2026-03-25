@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile | TargetResume</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    .navbar {
+      background: #dfe7e1;
+      color: #1e293b;
+      padding: 16px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid #d2ddd4;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo {
+      font-family: "Poppins", sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: #0f172a;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #5f6f63;
+      margin-top: 2px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
+    }
+
+    .nav-link {
+      position: relative;
+      color: #415044;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 2px;
+      transition: color 0.25s ease;
+    }
+
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 0%;
+      height: 2px;
+      background: #6b8f71;
+      transition: width 0.25s ease;
+    }
+
+    .nav-link:hover {
+      color: #1e293b;
+    }
+
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      width: 100%;
+    }
+
+    .nav-link.active {
+      color: #1e293b;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #edf3ee;
+      border: 1px solid #cfdccf;
+      padding: 8px 14px;
+      border-radius: 14px;
+      color: #3f5f45;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .logout-btn {
+      background: #f7faf7;
+      border: 1px solid #d6e0d7;
+      color: #415044;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-weight: 500;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6b8f71, #a7c4a0);
+    }
+
+    .page-header {
+      padding: 34px 40px 18px;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .page-header p {
+      color: #475569;
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .page-container {
+      padding: 0 40px 40px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .card, .section-card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 26px;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.07);
+      border: 1px solid #e8eeea;
+    }
+
+    .card h2, .section-card h2 {
+      font-size: 1.45rem;
+      margin-bottom: 18px;
+      color: #0f172a;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid #d6e0d7;
+      background: #ffffff;
+      font-size: 0.97rem;
+      color: #1e293b;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #6b8f71;
+      box-shadow: 0 0 0 4px rgba(107, 143, 113, 0.14);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .primary-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #5f8a66;
+      color: white;
+    }
+
+    .primary-btn:hover {
+      background: #4d7354;
+    }
+
+    .section-note {
+      background: #f3f8f4;
+      color: #3f5f45;
+      border: 1px solid #e2ece3;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .top-grid, .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-center {
+        display: none;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left">
+      <h1 class="logo">TargetResume</h1>
+      <span class="tagline">AI-Assisted Resume Builder</span>
+    </div>
+
+    <div class="nav-center">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/resumes" class="nav-link">My Resumes</a>
+      <a href="/job-tracker" class="nav-link">Job Tracker</a>
+    </div>
+
+    <div class="nav-right">
+      <a href="/profile" class="profile-btn">
+        <span class="avatar"></span>
+        My Profile
+      </a>
+      <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+  </nav>
+
+  <section class="page-header">
+    <h1>My Profile</h1>
+    <p>
+      Store your personal details and professional background here. This information is used to populate your dashboard preview and resume exports.
+    </p>
+  </section>
+
+  <main class="page-container">
+    <form action="/save-profile" method="POST">
+      <section class="top-grid">
+        <div class="card">
+          <h2>Profile Basics</h2>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="fullname">Full Name</label>
+              <input type="text" id="fullname" name="fullname" value="{{ profile.name if profile else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" value="{{ profile.email if profile else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label for="phone">Phone Number</label>
+              <input type="text" id="phone" name="phone" value="{{ profile.phone if profile else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label for="location">Location</label>
+              <input type="text" id="location" name="location" value="{{ profile.location if profile else '' }}">
+            </div>
+
+            <div class="form-group full">
+              <label for="linkedin">LinkedIn</label>
+              <input type="text" id="linkedin" name="linkedin" value="{{ profile.linkedin if profile else '' }}">
+            </div>
+
+            <div class="form-group full">
+              <label for="github">GitHub</label>
+              <input type="text" id="github" name="github" value="{{ profile.github if profile else '' }}">
+            </div>
+
+            <div class="form-group full">
+              <label for="portfolio">Portfolio</label>
+              <input type="text" id="portfolio" name="portfolio" value="{{ profile.portfolio if profile else '' }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Education</h2>
+
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="school">School</label>
+              <input type="text" id="school" name="school" value="{{ profile.school if profile else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label for="school_location">School Location</label>
+              <input type="text" id="school_location" name="school_location" value="{{ profile.school_location if profile else '' }}">
+            </div>
+
+            <div class="form-group">
+              <label for="expected_grad">Expected Graduation</label>
+              <input type="text" id="expected_grad" name="expected_grad" value="{{ profile.expected_grad if profile else '' }}">
+            </div>
+
+            <div class="form-group full">
+              <label for="degree">Degree</label>
+              <input type="text" id="degree" name="degree" value="{{ profile.degree if profile else '' }}">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <h2>Professional Background</h2>
+
+        <div class="section-note">
+          Everything you save here becomes the base content for your live resume preview on the dashboard.
+        </div>
+
+        <div class="form-group">
+          <label for="skills">Technical Skills</label>
+          <textarea id="skills" name="skills">{{ profile.skills if profile else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="projects">Projects</label>
+          <textarea id="projects" name="projects">{{ profile.projects if profile else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="experience">Work Experience</label>
+          <textarea id="experience" name="experience">{{ profile.experience if profile else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="certifications">Certifications / Extras</label>
+          <textarea id="certifications" name="certifications">{{ profile.certifications if profile else '' }}</textarea>
+        </div>
+
+        <div class="button-row">
+          <button type="submit" class="primary-btn">Save Profile</button>
+        </div>
+      </section>
+    </form>
+  </main>
+</body>
+</html>

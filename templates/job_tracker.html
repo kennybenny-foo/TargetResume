@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Tracker | TargetResume</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    .navbar {
+      background: #dfe7e1;
+      color: #1e293b;
+      padding: 16px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid #d2ddd4;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo {
+      font-family: "Poppins", sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: #0f172a;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #5f6f63;
+      margin-top: 2px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
+    }
+
+    .nav-link {
+      position: relative;
+      color: #415044;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 2px;
+      transition: color 0.25s ease;
+    }
+
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 0%;
+      height: 2px;
+      background: #6b8f71;
+      transition: width 0.25s ease;
+    }
+
+    .nav-link:hover {
+      color: #1e293b;
+    }
+
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      width: 100%;
+    }
+
+    .nav-link.active {
+      color: #1e293b;
+    }
+
+    .profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #edf3ee;
+      border: 1px solid #cfdccf;
+      padding: 8px 14px;
+      border-radius: 14px;
+      color: #3f5f45;
+      font-weight: 500;
+      text-decoration: none;
+      transition: 0.25s ease;
+    }
+
+    .profile-btn:hover {
+      background: #e1ebe2;
+      transform: translateY(-1px);
+    }
+
+        .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logout-btn {
+      background: #f7faf7;
+      border: 1px solid #d6e0d7;
+      color: #415044;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-weight: 500;
+      transition: 0.25s ease;
+    }
+
+    .logout-btn:hover {
+      background: #edf3ee;
+      color: #1e293b;
+      transform: translateY(-1px);
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6b8f71, #a7c4a0);
+    }
+
+    .page-header {
+      padding: 34px 40px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .page-header p {
+      color: #475569;
+      max-width: 700px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      padding: 0 40px 24px;
+    }
+
+    .stat-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 10px 24px rgba(95, 138, 102, 0.06);
+      border: 1px solid #e3ece4;
+    }
+
+    .stat-card h3 {
+      font-size: 1.7rem;
+      color: #3f5f45;
+      margin-bottom: 6px;
+    }
+
+    .stat-card p {
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .job-form-section {
+      padding: 0 40px 24px;
+    }
+
+    .job-form-card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 10px 24px rgba(95, 138, 102, 0.06);
+      border: 1px solid #e3ece4;
+    }
+
+    .job-form-card h2 {
+      font-size: 1.4rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .job-form-card p {
+      color: #475569;
+      margin-bottom: 18px;
+    }
+
+    .job-form {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .job-form .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .job-form input,
+    .job-form select,
+    .job-form textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #d6e0d7;
+      font-size: 0.95rem;
+      background: white;
+      color: #1e293b;
+    }
+
+    .job-form input:focus,
+    .job-form select:focus,
+    .job-form textarea:focus {
+      outline: none;
+      border-color: #6b8f71;
+      box-shadow: 0 0 0 4px rgba(107, 143, 113, 0.14);
+    }
+
+    .job-form textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .add-job-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      background: #5f8a66;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+      width: fit-content;
+    }
+
+    .add-job-btn:hover {
+      background: #4d7354;
+      transform: translateY(-1px);
+    }
+
+    .board-wrapper {
+      padding: 0 40px 40px;
+      overflow-x: auto;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(260px, 1fr));
+      gap: 18px;
+      min-width: 1380px;
+      align-items: start;
+    }
+
+    .column {
+      background: #f8fbf8;
+      border-radius: 22px;
+      padding: 18px;
+      border: 1px solid #e2ebe3;
+      box-shadow: 0 10px 24px rgba(95, 138, 102, 0.06);
+    }
+
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .column-header h2 {
+      font-size: 1.05rem;
+      color: #0f172a;
+    }
+
+    .count-badge {
+      background: #eef5ef;
+      color: #3f5f45;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border: 1px solid #d9e7da;
+    }
+
+    .job-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .job-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(95, 138, 102, 0.06);
+      border: 1px solid #e3ece4;
+      transition: 0.2s ease;
+    }
+
+    .job-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(95, 138, 102, 0.1);
+    }
+
+    .job-card h3 {
+      font-size: 1rem;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .company-name {
+      color: #4d7354;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .job-meta {
+      display: grid;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: #475569;
+      margin-bottom: 14px;
+    }
+
+    .resume-pill {
+      display: inline-block;
+      background: #eef5ef;
+      color: #3f5f45;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      border: 1px solid #d9e7da;
+    }
+
+    .job-link {
+      color: #4d7354;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .job-link:hover {
+      text-decoration: underline;
+    }
+
+    .job-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .delete-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+      background: #f3f6f3;
+      color: #5f6f63;
+      border: 1px solid #d9e3da;
+    }
+
+    .delete-btn:hover {
+      background: #e7efe8;
+      color: #3f5f45;
+    }
+
+    .empty-state {
+      color: #64748b;
+      font-size: 0.92rem;
+      background: #ffffff;
+      border: 1px dashed #d6e0d7;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    @media (max-width: 1100px) {
+      .nav-center {
+        display: none;
+      }
+
+      .stats-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .job-form {
+        grid-template-columns: 1fr;
+      }
+
+      .job-form .full-width {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .page-header,
+      .job-form-section,
+      .board-wrapper,
+      .stats-row,
+      .navbar {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left">
+      <h1 class="logo">TargetResume</h1>
+      <span class="tagline">AI-Assisted Resume Builder</span>
+    </div>
+
+    <div class="nav-center">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/resumes" class="nav-link">My Resumes</a>
+      <a href="/job-tracker" class="nav-link active">Job Tracker</a>
+    </div>
+
+    <div class="nav-right">
+      <a href="/profile" class="profile-btn">
+        <span class="avatar"></span>
+        My Profile
+      </a>
+      <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+  </nav>
+
+  <section class="page-header">
+    <div>
+      <h1>Job Tracker</h1>
+      <p>Track saved roles, applications, interviews, and offers in one organized workspace.</p>
+    </div>
+  </section>
+
+  <section class="stats-row">
+    <div class="stat-card">
+      <h3>{{ grouped_jobs["Saved"]|length + grouped_jobs["Applied"]|length + grouped_jobs["Interview"]|length + grouped_jobs["Offer"]|length + grouped_jobs["Rejected"]|length }}</h3>
+      <p>Total Jobs</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ grouped_jobs["Applied"]|length }}</h3>
+      <p>Applied</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ grouped_jobs["Interview"]|length }}</h3>
+      <p>Interviewing</p>
+    </div>
+    <div class="stat-card">
+      <h3>{{ grouped_jobs["Offer"]|length }}</h3>
+      <p>Offers</p>
+    </div>
+  </section>
+
+  <section class="job-form-section">
+    <div class="job-form-card">
+      <h2>Add a Job</h2>
+      <p>Add a new application and place it directly into the correct stage.</p>
+
+      <form action="/add-job" method="POST" class="job-form">
+        <input type="text" name="company" placeholder="Company" required>
+        <input type="text" name="job_title" placeholder="Job Title" required>
+        <input type="text" name="location" placeholder="Location">
+
+        <select name="status" required>
+          <option value="Saved">Saved</option>
+          <option value="Applied">Applied</option>
+          <option value="Interview">Interview</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+
+        <input type="text" name="resume_name" placeholder="Resume Name">
+        <input type="url" name="job_link" placeholder="Job Link">
+        <textarea name="notes" class="full-width" placeholder="Notes"></textarea>
+
+        <div class="full-width">
+          <button type="submit" class="add-job-btn">+ Add Job</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="board-wrapper">
+    <div class="board">
+
+      <div class="column">
+        <div class="column-header">
+          <h2>Saved</h2>
+          <span class="count-badge">{{ grouped_jobs["Saved"]|length }}</span>
+        </div>
+        <div class="job-list">
+          {% if grouped_jobs["Saved"] %}
+            {% for job in grouped_jobs["Saved"] %}
+            <div class="job-card" id="job-{{ job._id }}">
+              <h3>{{ job.job_title }}</h3>
+              <div class="company-name">{{ job.company }}</div>
+
+              {% if job.resume_name %}
+              <span class="resume-pill">Resume: {{ job.resume_name }}</span>
+              {% endif %}
+
+              <div class="job-meta">
+                {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
+                {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
+                {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+              </div>
+
+              <div class="job-actions">
+                <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">No saved jobs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="column-header">
+          <h2>Applied</h2>
+          <span class="count-badge">{{ grouped_jobs["Applied"]|length }}</span>
+        </div>
+        <div class="job-list">
+          {% if grouped_jobs["Applied"] %}
+            {% for job in grouped_jobs["Applied"] %}
+            <div class="job-card" id="job-{{ job._id }}">
+              <h3>{{ job.job_title }}</h3>
+              <div class="company-name">{{ job.company }}</div>
+
+              {% if job.resume_name %}
+              <span class="resume-pill">Resume: {{ job.resume_name }}</span>
+              {% endif %}
+
+              <div class="job-meta">
+                {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
+                {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
+                {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+              </div>
+
+              <div class="job-actions">
+                <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">No applied jobs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="column-header">
+          <h2>Interview</h2>
+          <span class="count-badge">{{ grouped_jobs["Interview"]|length }}</span>
+        </div>
+        <div class="job-list">
+          {% if grouped_jobs["Interview"] %}
+            {% for job in grouped_jobs["Interview"] %}
+            <div class="job-card" id="job-{{ job._id }}">
+              <h3>{{ job.job_title }}</h3>
+              <div class="company-name">{{ job.company }}</div>
+
+              {% if job.resume_name %}
+              <span class="resume-pill">Resume: {{ job.resume_name }}</span>
+              {% endif %}
+
+              <div class="job-meta">
+                {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
+                {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
+                {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+              </div>
+
+              <div class="job-actions">
+                <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">No interview-stage jobs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="column-header">
+          <h2>Offer</h2>
+          <span class="count-badge">{{ grouped_jobs["Offer"]|length }}</span>
+        </div>
+        <div class="job-list">
+          {% if grouped_jobs["Offer"] %}
+            {% for job in grouped_jobs["Offer"] %}
+            <div class="job-card" id="job-{{ job._id }}">
+              <h3>{{ job.job_title }}</h3>
+              <div class="company-name">{{ job.company }}</div>
+
+              {% if job.resume_name %}
+              <span class="resume-pill">Resume: {{ job.resume_name }}</span>
+              {% endif %}
+
+              <div class="job-meta">
+                {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
+                {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
+                {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+              </div>
+
+              <div class="job-actions">
+                <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">No offers yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="column-header">
+          <h2>Rejected</h2>
+          <span class="count-badge">{{ grouped_jobs["Rejected"]|length }}</span>
+        </div>
+        <div class="job-list">
+          {% if grouped_jobs["Rejected"] %}
+            {% for job in grouped_jobs["Rejected"] %}
+            <div class="job-card" id="job-{{ job._id }}">
+              <h3>{{ job.job_title }}</h3>
+              <div class="company-name">{{ job.company }}</div>
+
+              {% if job.resume_name %}
+              <span class="resume-pill">Resume: {{ job.resume_name }}</span>
+              {% endif %}
+
+              <div class="job-meta">
+                {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
+                {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
+                {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+              </div>
+
+              <div class="job-actions">
+                <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">No rejected jobs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $(".delete-job-btn").on("click", function () {
+        const jobId = $(this).data("id");
+        const jobCard = $("#job-" + jobId);
+
+        if (!confirm("Delete this job?")) {
+          return;
+        }
+
+        $.ajax({
+          url: "/delete-job/" + jobId,
+          type: "POST",
+          success: function (response) {
+            if (response.success) {
+              jobCard.fadeOut(250, function () {
+                $(this).remove();
+                location.reload();
+              });
+            } else {
+              alert("Could not delete the job.");
+            }
+          },
+          error: function () {
+            alert("Something went wrong while deleting the job.");
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

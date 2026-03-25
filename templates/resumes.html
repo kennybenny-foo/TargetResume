@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Resumes | TargetResume</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    .navbar {
+      background: #dfe7e1;
+      color: #1e293b;
+      padding: 16px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid #d2ddd4;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo {
+      font-family: "Poppins", sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: #0f172a;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #5f6f63;
+      margin-top: 2px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
+    }
+
+    .nav-link {
+      position: relative;
+      color: #415044;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 2px;
+      transition: color 0.25s ease;
+    }
+
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 0%;
+      height: 2px;
+      background: #6b8f71;
+      transition: width 0.25s ease;
+    }
+
+    .nav-link:hover {
+      color: #1e293b;
+    }
+
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      width: 100%;
+    }
+
+    .nav-link.active {
+      color: #1e293b;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #edf3ee;
+      border: 1px solid #cfdccf;
+      padding: 8px 14px;
+      border-radius: 14px;
+      color: #3f5f45;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .logout-btn {
+      background: #f7faf7;
+      border: 1px solid #d6e0d7;
+      color: #415044;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-weight: 500;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6b8f71, #a7c4a0);
+    }
+
+    .page-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: calc(100vh - 76px);
+    }
+
+    .sidebar {
+      background: #fbfcfb;
+      border-right: 1px solid #e4ebe5;
+      padding: 28px 20px;
+    }
+
+    .sidebar h2 {
+      font-size: 1.25rem;
+      margin-bottom: 18px;
+      color: #0f172a;
+    }
+
+    .folder-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .folder-item {
+      display: block;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #ffffff;
+      color: #334155;
+      border: 1px solid #e3ebe4;
+      text-decoration: none;
+      transition: 0.2s ease;
+      font-weight: 500;
+    }
+
+    .folder-item:hover {
+      background: #f5f9f6;
+      border-color: #d3e1d4;
+    }
+
+    .folder-item.active {
+      background: #eef5ef;
+      color: #3f5f45;
+      border-color: #d3e1d4;
+    }
+
+    .main-content {
+      padding: 32px 36px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .top-bar h1 {
+      font-size: 2rem;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .top-bar p {
+      color: #475569;
+    }
+
+    .resume-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 20px;
+    }
+
+    .resume-card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e8eeea;
+      transition: 0.2s ease;
+    }
+
+    .resume-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    }
+
+    .resume-label {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #eef5ef;
+      color: #3f5f45;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: 1px solid #d9e7da;
+    }
+
+    .resume-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+
+    .target-role {
+      color: #475569;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      line-height: 1.45;
+    }
+
+    .resume-meta {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+      color: #334155;
+      font-size: 0.92rem;
+    }
+
+    .resume-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .open-btn,
+    .delete-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .open-btn {
+      background: #5f8a66;
+      color: white;
+    }
+
+    .open-btn:hover {
+      background: #4d7354;
+    }
+
+    .delete-btn {
+      background: #f3f6f3;
+      color: #5f6f63;
+      border: 1px solid #d9e3da;
+    }
+
+    .delete-btn:hover {
+      background: #e7efe8;
+      color: #3f5f45;
+    }
+
+    .empty-state {
+      padding: 18px;
+      border-radius: 16px;
+      background: #ffffff;
+      border: 1px dashed #d6e0d7;
+      color: #64748b;
+    }
+
+    @media (max-width: 980px) {
+      .page-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid #e4ebe5;
+      }
+
+      .nav-center {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left">
+      <h1 class="logo">TargetResume</h1>
+      <span class="tagline">AI-Assisted Resume Builder</span>
+    </div>
+
+    <div class="nav-center">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/resumes" class="nav-link active">My Resumes</a>
+      <a href="/job-tracker" class="nav-link">Job Tracker</a>
+    </div>
+
+    <div class="nav-right">
+      <a href="/profile" class="profile-btn">
+        <span class="avatar"></span>
+        My Profile
+      </a>
+      <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+  </nav>
+
+  <div class="page-layout">
+    <aside class="sidebar">
+      <h2>Folders</h2>
+
+      <div class="folder-list">
+        <a href="/resumes?folder=All%20Resumes" class="folder-item {% if selected_folder == 'All Resumes' %}active{% endif %}">All Resumes</a>
+        {% for folder in folder_names %}
+          <a href="/resumes?folder={{ folder | urlencode }}" class="folder-item {% if selected_folder == folder %}active{% endif %}">
+            {{ folder }}
+          </a>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="top-bar">
+        <div>
+          <h1>My Resumes</h1>
+          <p>Organize tailored resumes by folder and keep track of when each one was last saved.</p>
+        </div>
+      </div>
+
+      {% if resumes %}
+        <section class="resume-grid">
+          {% for resume in resumes %}
+          <div class="resume-card" id="resume-{{ resume._id }}">
+            <span class="resume-label">{{ resume.folder if resume.folder else "Saved Drafts" }}</span>
+            <h3>{{ resume.title }}</h3>
+            <p class="target-role">
+              Target Role: {{ resume.job_title if resume.job_title else "Untitled Role" }}
+            </p>
+
+            <div class="resume-meta">
+              <div><strong>Folder:</strong> {{ resume.folder if resume.folder else "Saved Drafts" }}</div>
+              <div><strong>Saved:</strong> {{ resume.updated_at.strftime("%b %d, %Y") if resume.updated_at else "" }}</div>
+              <div><strong>Time:</strong> {{ resume.updated_at.strftime("%I:%M %p") if resume.updated_at else "" }}</div>
+            </div>
+
+            <div class="resume-actions">
+              <button type="button" class="open-btn">Open</button>
+              <button type="button" class="delete-btn delete-resume-btn" data-id="{{ resume._id }}">Delete</button>
+            </div>
+          </div>
+          {% endfor %}
+        </section>
+      {% else %}
+        <div class="empty-state">
+          No saved resumes yet. Go to the dashboard and click <strong>Save Version</strong>.
+        </div>
+      {% endif %}
+    </main>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $(".delete-resume-btn").on("click", function () {
+        const resumeId = $(this).data("id");
+        const resumeCard = $("#resume-" + resumeId);
+
+        if (!confirm("Delete this saved resume?")) {
+          return;
+        }
+
+        $.ajax({
+          url: "/delete-resume/" + resumeId,
+          type: "POST",
+          success: function (response) {
+            if (response.success) {
+              resumeCard.fadeOut(200, function () {
+                $(this).remove();
+                location.reload();
+              });
+            } else {
+              alert("Could not delete resume.");
+            }
+          },
+          error: function () {
+            alert("Something went wrong while deleting the resume.");
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
