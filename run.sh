@@ -22,7 +22,7 @@ git log -1 --oneline
 
 echo "==> Ensuring venv exists..."
 if [ ! -d "$VENV" ]; then
-  python3.12 -m venv "$VENV"
+  python -m venv "$VENV"
 fi
 
 echo "==> Installing deps..."
