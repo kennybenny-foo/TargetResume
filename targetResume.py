@@ -18,6 +18,9 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 MONGODB_URI = os.environ.get("MONGODB_URI")
+if not MONGODB_URI:
+    raise ValueError("MONGODB_URI is not set")
+
 client = MongoClient(MONGODB_URI)
 
 db = client["TargetResume"]
