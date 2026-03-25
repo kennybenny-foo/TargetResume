@@ -27,8 +27,8 @@ fi
 
 echo "==> Installing deps..."
 "$PY" -m pip install -U pip
-if [ -f requirements.txt ]; then
-  "$PY" -m pip install -r requirements.txt
+if [ -f requirement.txt ]; then
+  "$PY" -m pip install -r requirement.txt
 fi
 
 echo "==> Stopping old server..."
