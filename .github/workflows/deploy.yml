@@ -23,6 +23,9 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
+            export FLASK_SECRET_KEY='${{ secrets.FLASK_SECRET_KEY }}'
+            export MONGODB_URI='${{ secrets.MONGODB_URI }}'
+            export OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'
             cd ~/TargetResume
             bash run.sh
             tail -n 50 ~/TargetResume_logs/log.txt

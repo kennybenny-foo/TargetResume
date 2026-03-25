@@ -12,12 +12,12 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
-app.secret_key = "targetresume_dev_secret_key"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key")
 
-OPENAI_API_KEY = ("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")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
-MONGODB_URI = ("mongodb+srv://kennymejia10_db_user:ThcYfzfODI0mBDS3@targetresume.hha4pea.mongodb.net/?appName=TargetResume")
+MONGODB_URI = os.environ.get("MONGODB_URI")
 client = MongoClient(MONGODB_URI)
 
 db = client["TargetResume"]

@@ -43,5 +43,3 @@ pgrep -af "targetResume.py" || (echo "FAILED to start"; tail -n 80 "$LOG"; exit 
 
 echo "==> Last 40 log lines:"
 tail -n 40 "$LOG" || true
-
-echo "==> Done. Tail logs with: tail -n 200 -f $LOG"
