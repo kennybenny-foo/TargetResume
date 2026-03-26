@@ -519,4 +519,4 @@ def delete_job(job_id):
     return jsonify({"success": False}), 404
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5025)
+    app.run(host="127.0.0.1", port=5025)
