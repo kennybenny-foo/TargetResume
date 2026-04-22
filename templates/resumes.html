@@ -445,6 +445,118 @@
       color: #64748b;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.34);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 300;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(100%, 460px);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fcf9 100%);
+      border: 1px solid #dfe8e0;
+      border-radius: 24px;
+      box-shadow: 0 24px 52px rgba(15, 23, 42, 0.18);
+      padding: 24px;
+    }
+
+    .modal-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef5ef;
+      color: #3f5f45;
+      border: 1px solid #d9e7da;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 1.35rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .modal-message {
+      color: #475569;
+      line-height: 1.55;
+      margin-bottom: 18px;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #d6e0d7;
+      font-size: 0.96rem;
+      margin-bottom: 18px;
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: #6b8f71;
+      box-shadow: 0 0 0 4px rgba(107, 143, 113, 0.14);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .modal-btn-secondary {
+      background: #f4f7f4;
+      color: #475569;
+      border: 1px solid #d9e3da;
+    }
+
+    .modal-btn-secondary:hover {
+      background: #eaf1eb;
+    }
+
+    .modal-btn-primary {
+      background: #5f8a66;
+      color: #ffffff;
+      box-shadow: 0 10px 20px rgba(95, 138, 102, 0.16);
+    }
+
+    .modal-btn-primary:hover {
+      background: #4d7354;
+    }
+
+    .modal-btn-danger {
+      background: #b91c1c;
+      color: #ffffff;
+    }
+
+    .modal-btn-danger:hover {
+      background: #991b1b;
+    }
+
     @media (max-width: 980px) {
       .page-layout {
         grid-template-columns: 1fr;
@@ -573,9 +685,144 @@
     </main>
   </div>
 
+  <div id="appModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+      <div class="modal-eyebrow" id="appModalEyebrow">TargetResume</div>
+      <h2 class="modal-title" id="appModalTitle">Modal Title</h2>
+      <p class="modal-message" id="appModalMessage"></p>
+      <input type="text" id="appModalInput" class="modal-input" style="display: none;">
+      <div class="modal-actions">
+        <button type="button" id="appModalCancel" class="modal-btn modal-btn-secondary">Cancel</button>
+        <button type="button" id="appModalConfirm" class="modal-btn modal-btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
     $(document).ready(function () {
+      function openModal(options) {
+        const settings = Object.assign({
+          eyebrow: "TargetResume",
+          title: "",
+          message: "",
+          confirmText: "Confirm",
+          cancelText: "Cancel",
+          showCancel: true,
+          danger: false,
+          input: false,
+          inputValue: "",
+          inputPlaceholder: ""
+        }, options || {});
+
+        const $overlay = $("#appModal");
+        const $title = $("#appModalTitle");
+        const $message = $("#appModalMessage");
+        const $eyebrow = $("#appModalEyebrow");
+        const $input = $("#appModalInput");
+        const $cancel = $("#appModalCancel");
+        const $confirm = $("#appModalConfirm");
+
+        $eyebrow.text(settings.eyebrow);
+        $title.text(settings.title);
+        $message.text(settings.message);
+        $cancel.text(settings.cancelText).toggle(settings.showCancel);
+        $confirm.text(settings.confirmText)
+          .removeClass("modal-btn-danger modal-btn-primary")
+          .addClass(settings.danger ? "modal-btn-danger" : "modal-btn-primary");
+
+        if (settings.input) {
+          $input.val(settings.inputValue || "")
+            .attr("placeholder", settings.inputPlaceholder || "")
+            .show();
+        } else {
+          $input.hide().val("");
+        }
+
+        $overlay.addClass("open").attr("aria-hidden", "false");
+
+        return new Promise((resolve) => {
+          function close(result) {
+            $overlay.removeClass("open").attr("aria-hidden", "true");
+            $confirm.off("click.modal");
+            $cancel.off("click.modal");
+            $overlay.off("click.modal");
+            $(document).off("keydown.modal");
+            resolve(result);
+          }
+
+          $confirm.on("click.modal", function () {
+            close({
+              confirmed: true,
+              value: settings.input ? $input.val().trim() : ""
+            });
+          });
+
+          $cancel.on("click.modal", function () {
+            close({ confirmed: false, value: "" });
+          });
+
+          $overlay.on("click.modal", function (event) {
+            if (event.target === this) {
+              close({ confirmed: false, value: "" });
+            }
+          });
+
+          $(document).on("keydown.modal", function (event) {
+            if (event.key === "Escape") {
+              close({ confirmed: false, value: "" });
+            } else if (event.key === "Enter" && settings.input) {
+              event.preventDefault();
+              $confirm.trigger("click");
+            }
+          });
+
+          setTimeout(function () {
+            if (settings.input) {
+              $input.trigger("focus").select();
+            } else {
+              $confirm.trigger("focus");
+            }
+          }, 10);
+        });
+      }
+
+      function openAlertModal(title, message) {
+        return openModal({
+          eyebrow: "Heads Up",
+          title: title,
+          message: message,
+          confirmText: "Okay",
+          showCancel: false
+        });
+      }
+
+      function openConfirmModal(title, message, danger) {
+        return openModal({
+          eyebrow: danger ? "Please Confirm" : "Confirm Action",
+          title: title,
+          message: message,
+          confirmText: danger ? "Delete" : "Confirm",
+          cancelText: "Cancel",
+          showCancel: true,
+          danger: Boolean(danger)
+        });
+      }
+
+      function openPromptModal(title, message, value, placeholder) {
+        return openModal({
+          eyebrow: "Edit Details",
+          title: title,
+          message: message,
+          confirmText: "Save",
+          cancelText: "Cancel",
+          showCancel: true,
+          input: true,
+          inputValue: value,
+          inputPlaceholder: placeholder
+        });
+      }
+
       $(document).on("click", function (event) {
         if (!$(event.target).closest(".folder-menu-wrap").length) {
           $(".folder-menu").removeClass("open");
@@ -591,7 +838,7 @@
         $menu.toggleClass("open");
       });
 
-      $(".folder-action-btn").on("click", function () {
+      $(".folder-action-btn").on("click", async function () {
         const folderName = $(this).data("folder");
         const action = $(this).data("action");
         let requestData = {
@@ -600,17 +847,27 @@
         };
 
         if (action === "rename") {
-          const newName = prompt("Rename folder to:", folderName);
-          if (!newName || newName.trim() === folderName) {
+          const promptResult = await openPromptModal(
+            "Rename Folder",
+            "Choose a new folder name for this section.",
+            folderName,
+            "Enter folder name"
+          );
+          if (!promptResult.confirmed || !promptResult.value || promptResult.value === folderName) {
             return;
           }
-          requestData.new_name = newName.trim();
+          requestData.new_name = promptResult.value;
         }
 
-        const confirmDelete = action !== "delete" || confirm(`Delete folder "${folderName}"? Resumes in it will move to Saved Drafts.`);
-
-        if (!confirmDelete) {
-          return;
+        if (action === "delete") {
+          const confirmDelete = await openConfirmModal(
+            "Delete Folder",
+            `Delete "${folderName}"? Any resumes inside it will move to Saved Drafts.`,
+            true
+          );
+          if (!confirmDelete.confirmed) {
+            return;
+          }
         }
 
         $.ajax({
@@ -621,14 +878,14 @@
             if (response.success) {
               location.reload();
             } else {
-              alert("Could not update folder.");
+              openAlertModal("Folder Update Failed", "Could not update that folder.");
             }
           },
           error: function (xhr) {
             const message = xhr.responseJSON && xhr.responseJSON.error
               ? xhr.responseJSON.error
               : "Something went wrong while updating the folder.";
-            alert(message);
+            openAlertModal("Folder Update Failed", message);
           }
         });
       });
@@ -646,11 +903,11 @@
             if (response.success) {
               location.reload();
             } else {
-              alert("Could not duplicate resume.");
+              openAlertModal("Duplicate Failed", "Could not duplicate that saved resume.");
             }
           },
           error: function () {
-            alert("Something went wrong while duplicating the resume.");
+            openAlertModal("Duplicate Failed", "Something went wrong while duplicating the resume.");
           },
           complete: function () {
             $button.prop("disabled", false).text("Duplicate");
@@ -658,12 +915,17 @@
         });
       });
 
-      $(".rename-resume-btn").on("click", function () {
+      $(".rename-resume-btn").on("click", async function () {
         const resumeId = $(this).data("id");
         const currentTitle = $(this).data("title");
-        const newTitle = prompt("Rename saved resume to:", currentTitle);
+        const promptResult = await openPromptModal(
+          "Rename Saved Resume",
+          "Update the saved resume name shown in your library.",
+          currentTitle,
+          "Enter resume name"
+        );
 
-        if (!newTitle || !newTitle.trim() || newTitle.trim() === currentTitle) {
+        if (!promptResult.confirmed || !promptResult.value || promptResult.value === currentTitle) {
           return;
         }
 
@@ -673,19 +935,19 @@
         $.ajax({
           url: "/rename-resume/" + resumeId,
           type: "POST",
-          data: { title: newTitle.trim() },
+          data: { title: promptResult.value },
           success: function (response) {
             if (response.success) {
               location.reload();
             } else {
-              alert("Could not rename resume.");
+              openAlertModal("Rename Failed", "Could not rename that saved resume.");
             }
           },
           error: function (xhr) {
             const message = xhr.responseJSON && xhr.responseJSON.error
               ? xhr.responseJSON.error
               : "Something went wrong while renaming the resume.";
-            alert(message);
+            openAlertModal("Rename Failed", message);
           },
           complete: function () {
             $button.prop("disabled", false).text("Rename");
@@ -722,11 +984,11 @@
                 location.reload();
               }
             } else {
-              alert("Could not move resume.");
+              openAlertModal("Move Failed", "Could not move that saved resume.");
             }
           },
           error: function () {
-            alert("Something went wrong while moving the resume.");
+            openAlertModal("Move Failed", "Something went wrong while moving the resume.");
           },
           complete: function () {
             $button.prop("disabled", false).text("Move");
@@ -734,11 +996,17 @@
         });
       });
 
-      $(".delete-resume-btn").on("click", function () {
+      $(".delete-resume-btn").on("click", async function () {
         const resumeId = $(this).data("id");
         const resumeCard = $("#resume-" + resumeId);
 
-        if (!confirm("Delete this saved resume?")) {
+        const confirmDelete = await openConfirmModal(
+          "Delete Saved Resume",
+          "Delete this saved resume? This cannot be undone.",
+          true
+        );
+
+        if (!confirmDelete.confirmed) {
           return;
         }
 
@@ -752,11 +1020,11 @@
                 location.reload();
               });
             } else {
-              alert("Could not delete resume.");
+              openAlertModal("Delete Failed", "Could not delete that saved resume.");
             }
           },
           error: function () {
-            alert("Something went wrong while deleting the resume.");
+            openAlertModal("Delete Failed", "Something went wrong while deleting the resume.");
           }
         });
       });

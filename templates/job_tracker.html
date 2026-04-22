@@ -403,6 +403,100 @@
       text-align: center;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.34);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 300;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(100%, 440px);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fcf9 100%);
+      border: 1px solid #dfe8e0;
+      border-radius: 24px;
+      box-shadow: 0 24px 52px rgba(15, 23, 42, 0.18);
+      padding: 24px;
+    }
+
+    .modal-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef5ef;
+      color: #3f5f45;
+      border: 1px solid #d9e7da;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 1.35rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .modal-message {
+      color: #475569;
+      line-height: 1.55;
+      margin-bottom: 18px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .modal-btn-secondary {
+      background: #f4f7f4;
+      color: #475569;
+      border: 1px solid #d9e3da;
+    }
+
+    .modal-btn-secondary:hover {
+      background: #eaf1eb;
+    }
+
+    .modal-btn-primary {
+      background: #5f8a66;
+      color: #ffffff;
+    }
+
+    .modal-btn-primary:hover {
+      background: #4d7354;
+    }
+
+    .modal-btn-danger {
+      background: #b91c1c;
+      color: #ffffff;
+    }
+
+    .modal-btn-danger:hover {
+      background: #991b1b;
+    }
+
     @media (max-width: 1100px) {
       .nav-center {
         display: none;
@@ -685,14 +779,118 @@
     </div>
   </section>
 
+  <div id="appModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+      <div class="modal-eyebrow" id="appModalEyebrow">TargetResume</div>
+      <h2 class="modal-title" id="appModalTitle">Modal Title</h2>
+      <p class="modal-message" id="appModalMessage"></p>
+      <div class="modal-actions">
+        <button type="button" id="appModalCancel" class="modal-btn modal-btn-secondary">Cancel</button>
+        <button type="button" id="appModalConfirm" class="modal-btn modal-btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
     $(document).ready(function () {
-      $(".delete-job-btn").on("click", function () {
+      function openModal(options) {
+        const settings = Object.assign({
+          eyebrow: "TargetResume",
+          title: "",
+          message: "",
+          confirmText: "Confirm",
+          cancelText: "Cancel",
+          showCancel: true,
+          danger: false
+        }, options || {});
+
+        const $overlay = $("#appModal");
+        const $title = $("#appModalTitle");
+        const $message = $("#appModalMessage");
+        const $eyebrow = $("#appModalEyebrow");
+        const $cancel = $("#appModalCancel");
+        const $confirm = $("#appModalConfirm");
+
+        $eyebrow.text(settings.eyebrow);
+        $title.text(settings.title);
+        $message.text(settings.message);
+        $cancel.text(settings.cancelText).toggle(settings.showCancel);
+        $confirm.text(settings.confirmText)
+          .removeClass("modal-btn-danger modal-btn-primary")
+          .addClass(settings.danger ? "modal-btn-danger" : "modal-btn-primary");
+
+        $overlay.addClass("open").attr("aria-hidden", "false");
+
+        return new Promise((resolve) => {
+          function close(result) {
+            $overlay.removeClass("open").attr("aria-hidden", "true");
+            $confirm.off("click.modal");
+            $cancel.off("click.modal");
+            $overlay.off("click.modal");
+            $(document).off("keydown.modal");
+            resolve(result);
+          }
+
+          $confirm.on("click.modal", function () {
+            close({ confirmed: true });
+          });
+
+          $cancel.on("click.modal", function () {
+            close({ confirmed: false });
+          });
+
+          $overlay.on("click.modal", function (event) {
+            if (event.target === this) {
+              close({ confirmed: false });
+            }
+          });
+
+          $(document).on("keydown.modal", function (event) {
+            if (event.key === "Escape") {
+              close({ confirmed: false });
+            }
+          });
+
+          setTimeout(function () {
+            $confirm.trigger("focus");
+          }, 10);
+        });
+      }
+
+      function openAlertModal(title, message) {
+        return openModal({
+          eyebrow: "Heads Up",
+          title: title,
+          message: message,
+          confirmText: "Okay",
+          showCancel: false
+        });
+      }
+
+      function openConfirmModal(title, message, danger) {
+        return openModal({
+          eyebrow: danger ? "Please Confirm" : "Confirm Action",
+          title: title,
+          message: message,
+          confirmText: danger ? "Delete" : "Confirm",
+          cancelText: "Cancel",
+          showCancel: true,
+          danger: Boolean(danger)
+        });
+      }
+
+      $(".delete-job-btn").on("click", async function () {
         const jobId = $(this).data("id");
         const jobCard = $("#job-" + jobId);
 
-        if (!confirm("Delete this job?")) {
+        const confirmDelete = await openConfirmModal(
+          "Delete Job",
+          "Delete this job from your tracker? This action cannot be undone.",
+          true
+        );
+
+        if (!confirmDelete.confirmed) {
           return;
         }
 
@@ -706,11 +904,11 @@
                 location.reload();
               });
             } else {
-              alert("Could not delete the job.");
+              openAlertModal("Delete Failed", "Could not delete that job.");
             }
           },
           error: function () {
-            alert("Something went wrong while deleting the job.");
+            openAlertModal("Delete Failed", "Something went wrong while deleting the job.");
           }
         });
       });
