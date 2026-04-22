@@ -99,6 +99,55 @@ def format_resume_entries(entries):
     return "\n\n".join(sections)
 
 
+def normalize_skills_entries(raw_value):
+    if not raw_value:
+        return []
+
+    if isinstance(raw_value, str):
+        try:
+            raw_value = json.loads(raw_value)
+        except json.JSONDecodeError:
+            return []
+
+    if not isinstance(raw_value, list):
+        return []
+
+    entries = []
+    for item in raw_value:
+        if not isinstance(item, dict):
+            continue
+
+        category = normalize_text_block(item.get("category"))
+        values = item.get("values", [])
+        if isinstance(values, str):
+            values = [part.strip() for part in values.split(",")]
+
+        normalized_values = [normalize_text_block(value) for value in values if normalize_text_block(value)]
+        if category or normalized_values:
+            entries.append({
+                "category": category,
+                "values": normalized_values
+            })
+
+    return entries
+
+
+def format_skills_entries(entries):
+    lines = []
+    for entry in entries:
+        category = normalize_text_block(entry.get("category"))
+        values = [normalize_text_block(value) for value in entry.get("values", []) if normalize_text_block(value)]
+        if not category and not values:
+            continue
+        if category and values:
+            lines.append(f"- {category}: {', '.join(values)}")
+        elif category:
+            lines.append(f"- {category}")
+        else:
+            lines.append(f"- {', '.join(values)}")
+    return "\n".join(lines)
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key")
 
@@ -144,6 +193,7 @@ def generate_resume_preview():
 
     user_id = session["user_id"]
     profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    skills_entries = normalize_skills_entries(profile.get("skills_entries"))
     project_entries = normalize_resume_entries(profile.get("projects_entries"))
     experience_entries = normalize_resume_entries(profile.get("experience_entries"))
 
@@ -165,9 +215,10 @@ def generate_resume_preview():
         ])) or "Email | Phone | LinkedIn | Portfolio",
         "education_top": education_top,
         "education_bottom": profile.get("degree", ""),
-        "skills": profile.get("skills", ""),
+        "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
         "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
         "experience": format_resume_entries(experience_entries) or profile.get("experience", ""),
+        "skills_entries": skills_entries,
         "projects_entries": project_entries,
         "experience_entries": experience_entries
     }
@@ -327,10 +378,14 @@ def export_resume():
 
     user_id = session["user_id"]
     profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    skills_entries = normalize_skills_entries(profile.get("skills_entries"))
     project_entries = normalize_resume_entries(profile.get("projects_entries"))
     experience_entries = normalize_resume_entries(profile.get("experience_entries"))
 
-    tailored_skills = request.args.get("tailored_skills", profile.get("skills", ""))
+    tailored_skills = request.args.get(
+        "tailored_skills",
+        format_skills_entries(skills_entries) or profile.get("skills", "")
+    )
     tailored_projects = request.args.get(
         "tailored_projects",
         format_resume_entries(project_entries) or profile.get("projects", "")
@@ -466,6 +521,7 @@ def save_profile():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+    skills_entries = normalize_skills_entries(request.form.get("skills_entries"))
     projects_entries = normalize_resume_entries(request.form.get("projects_entries"))
     experience_entries = normalize_resume_entries(request.form.get("experience_entries"))
 
@@ -484,7 +540,8 @@ def save_profile():
         "expected_grad": request.form.get("expected_grad"),
         "degree": request.form.get("degree"),
 
-        "skills": request.form.get("skills"),
+        "skills": format_skills_entries(skills_entries),
+        "skills_entries": skills_entries,
         "projects": format_resume_entries(projects_entries),
         "experience": format_resume_entries(experience_entries),
         "projects_entries": projects_entries,

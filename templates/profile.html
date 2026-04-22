@@ -316,6 +316,16 @@
       display: none;
     }
 
+    .skills-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .skills-values {
+      display: grid;
+      gap: 10px;
+    }
+
     @media (max-width: 1100px) {
       .top-grid, .form-grid {
         grid-template-columns: 1fr;
@@ -439,8 +449,11 @@
         </div>
 
         <div class="form-group">
-          <label for="skills">Technical Skills</label>
-          <textarea id="skills" name="skills">{{ profile.skills if profile else '' }}</textarea>
+          <label>Technical Skills</label>
+          <p class="helper-text">Group skills by category the same way they appear on your resume, like Languages, Databases, Web, Tools, Frameworks, and Platforms.</p>
+          <div id="skillsBuilder" class="entry-builder skills-grid"></div>
+          <button type="button" class="add-entry-btn" data-builder="skillsBuilder" data-entry-label="Skill Group">+ Add Skill Group</button>
+          <input type="hidden" id="skills_entries" name="skills_entries" class="hidden-json">
         </div>
 
         <div class="form-group">
@@ -473,8 +486,33 @@
   <script>
     const initialProjects = {{ (profile.projects_entries if profile and profile.projects_entries else []) | tojson }};
     const initialExperience = {{ (profile.experience_entries if profile and profile.experience_entries else []) | tojson }};
+    const initialSkills = {{ (profile.skills_entries if profile and profile.skills_entries else []) | tojson }};
+    const legacySkillsText = {{ (profile.skills if profile and profile.skills else "") | tojson }};
     const legacyProjectsText = {{ (profile.projects if profile and profile.projects else "") | tojson }};
     const legacyExperienceText = {{ (profile.experience if profile and profile.experience else "") | tojson }};
+
+    function convertLegacySkillsToEntries(text) {
+      return text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => line.replace(/^[-*]\s*/, ""))
+        .map((line) => {
+          const parts = line.split(":");
+          if (parts.length > 1) {
+            return {
+              category: parts[0].trim(),
+              values: parts.slice(1).join(":").split(",").map((value) => value.trim()).filter(Boolean)
+            };
+          }
+
+          return {
+            category: "",
+            values: line.split(",").map((value) => value.trim()).filter(Boolean)
+          };
+        })
+        .filter((entry) => entry.category || entry.values.length);
+    }
 
     function convertLegacyTextToEntry(text) {
       const bullets = text
@@ -484,6 +522,84 @@
         .map((line) => line.replace(/^[-*]\s*/, ""));
 
       return bullets.length ? [{ title: "", details: "", bullets }] : [];
+    }
+
+    function createSkillValueRow(value = "") {
+      const row = document.createElement("div");
+      row.className = "bullet-row";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "skill-value-input";
+      input.placeholder = "e.g. Python";
+      input.value = value;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "remove-btn";
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", () => row.remove());
+
+      row.appendChild(input);
+      row.appendChild(removeButton);
+      return row;
+    }
+
+    function createSkillGroupCard(entry = {}) {
+      const builder = document.getElementById("skillsBuilder");
+      const card = document.createElement("div");
+      card.className = "entry-card";
+
+      const header = document.createElement("div");
+      header.className = "entry-card-header";
+
+      const title = document.createElement("div");
+      title.className = "entry-card-title";
+      title.textContent = "Skill Group";
+
+      const removeEntryButton = document.createElement("button");
+      removeEntryButton.type = "button";
+      removeEntryButton.className = "remove-btn";
+      removeEntryButton.textContent = "Delete Group";
+      removeEntryButton.addEventListener("click", () => card.remove());
+
+      header.appendChild(title);
+      header.appendChild(removeEntryButton);
+
+      const categoryGroup = document.createElement("div");
+      categoryGroup.className = "form-group";
+      categoryGroup.innerHTML = "<label>Category</label>";
+      const categoryInput = document.createElement("input");
+      categoryInput.type = "text";
+      categoryInput.className = "skill-category";
+      categoryInput.placeholder = "e.g. Languages";
+      categoryInput.value = entry.category || "";
+      categoryGroup.appendChild(categoryInput);
+
+      const valuesGroup = document.createElement("div");
+      valuesGroup.className = "form-group";
+      valuesGroup.innerHTML = "<label>Skills</label>";
+
+      const valuesContainer = document.createElement("div");
+      valuesContainer.className = "skills-values";
+      const values = Array.isArray(entry.values) && entry.values.length ? entry.values : [""];
+      values.forEach((value) => valuesContainer.appendChild(createSkillValueRow(value)));
+
+      const addValueButton = document.createElement("button");
+      addValueButton.type = "button";
+      addValueButton.className = "inline-btn";
+      addValueButton.textContent = "+ Add Skill";
+      addValueButton.addEventListener("click", () => {
+        valuesContainer.appendChild(createSkillValueRow(""));
+      });
+
+      valuesGroup.appendChild(valuesContainer);
+      valuesGroup.appendChild(addValueButton);
+
+      card.appendChild(header);
+      card.appendChild(categoryGroup);
+      card.appendChild(valuesGroup);
+      builder.appendChild(card);
     }
 
     function createBulletRow(value = "") {
@@ -592,21 +708,43 @@
         .filter((entry) => entry.title || entry.details || entry.bullets.length);
     }
 
+    function serializeSkillsBuilder() {
+      return Array.from(document.querySelectorAll("#skillsBuilder .entry-card"))
+        .map((card) => {
+          const values = Array.from(card.querySelectorAll(".skill-value-input"))
+            .map((input) => input.value.trim())
+            .filter(Boolean);
+
+          return {
+            category: card.querySelector(".skill-category").value.trim(),
+            values
+          };
+        })
+        .filter((entry) => entry.category || entry.values.length);
+    }
+
     function syncStructuredFields() {
+      document.getElementById("skills_entries").value = JSON.stringify(serializeSkillsBuilder());
       document.getElementById("projects_entries").value = JSON.stringify(serializeBuilder("projectsBuilder"));
       document.getElementById("experience_entries").value = JSON.stringify(serializeBuilder("experienceBuilder"));
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      const skillsSeed = initialSkills.length ? initialSkills : (convertLegacySkillsToEntries(legacySkillsText).length ? convertLegacySkillsToEntries(legacySkillsText) : [{}]);
       const projectSeed = initialProjects.length ? initialProjects : (convertLegacyTextToEntry(legacyProjectsText).length ? convertLegacyTextToEntry(legacyProjectsText) : [{}]);
       const experienceSeed = initialExperience.length ? initialExperience : (convertLegacyTextToEntry(legacyExperienceText).length ? convertLegacyTextToEntry(legacyExperienceText) : [{}]);
 
+      skillsSeed.forEach((entry) => createSkillGroupCard(entry));
       projectSeed.forEach((entry) => createEntryCard("projectsBuilder", "Project", entry));
       experienceSeed.forEach((entry) => createEntryCard("experienceBuilder", "Experience", entry));
 
       document.querySelectorAll(".add-entry-btn").forEach((button) => {
         button.addEventListener("click", function () {
-          createEntryCard(button.dataset.builder, button.dataset.entryLabel, {});
+          if (button.dataset.builder === "skillsBuilder") {
+            createSkillGroupCard({});
+          } else {
+            createEntryCard(button.dataset.builder, button.dataset.entryLabel, {});
+          }
         });
       });
 
