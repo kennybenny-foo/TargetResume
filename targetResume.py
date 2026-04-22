@@ -834,6 +834,44 @@ def create_folder():
 
     return redirect(url_for("resumes", folder=folder_name))
 
+
+@app.route("/move-resume/<resume_id>", methods=["POST"])
+def move_resume(resume_id):
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    target_folder = request.form.get("folder", "").strip() or "Saved Drafts"
+
+    folders_collection.update_one(
+        {"user_id": user_id, "name": target_folder},
+        {"$setOnInsert": {
+            "user_id": user_id,
+            "name": target_folder,
+            "created_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
+
+    result = resumes_collection.update_one(
+        {
+            "_id": ObjectId(resume_id),
+            "user_id": user_id
+        },
+        {
+            "$set": {
+                "folder": target_folder,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    if result.matched_count == 1:
+        return jsonify({"success": True, "folder": target_folder})
+
+    return jsonify({"success": False, "error": "Resume not found"}), 404
+
+
 @app.route("/delete-resume/<resume_id>", methods=["POST"])
 def delete_resume(resume_id):
     if "user_id" not in session:
