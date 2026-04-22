@@ -649,7 +649,7 @@ def export_resume():
             y -= 3
 
     p.setFont("Times-Bold", 18)
-    p.drawString(left_margin, y, profile.get("name", "Your Name"))
+    p.drawCentredString(page_width / 2, y, profile.get("name", "Your Name"))
     y -= 20
 
     contact = " | ".join(filter(None, [
@@ -661,7 +661,7 @@ def export_resume():
     if contact:
         for line in split_text_to_lines(contact, "Times-Roman", 10.5, content_width):
             p.setFont("Times-Roman", 10.5)
-            p.drawString(left_margin, y, line)
+            p.drawCentredString(page_width / 2, y, line)
             y -= 13
     y -= 8
 
