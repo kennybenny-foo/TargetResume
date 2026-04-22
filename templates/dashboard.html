@@ -325,6 +325,92 @@
       background: #eef3ee;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.34);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 300;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(100%, 460px);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fcf9 100%);
+      border: 1px solid #dfe8e0;
+      border-radius: 24px;
+      box-shadow: 0 24px 52px rgba(15, 23, 42, 0.18);
+      padding: 24px;
+    }
+
+    .modal-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef5ef;
+      color: #3f5f45;
+      border: 1px solid #d9e7da;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 1.35rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .modal-message {
+      color: #475569;
+      line-height: 1.55;
+      margin-bottom: 18px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .modal-btn-secondary {
+      background: #f4f7f4;
+      color: #475569;
+      border: 1px solid #d9e3da;
+    }
+
+    .modal-btn-secondary:hover {
+      background: #eaf1eb;
+    }
+
+    .modal-btn-primary {
+      background: #5f8a66;
+      color: #ffffff;
+      box-shadow: 0 10px 20px rgba(95, 138, 102, 0.16);
+    }
+
+    .modal-btn-primary:hover {
+      background: #4d7354;
+    }
+
     .preview-wrapper {
       background:
         linear-gradient(180deg, #f7faf7 0%, #eef4ef 100%);
@@ -835,6 +921,18 @@
     </section>
   </main>
 
+  <div id="appModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+      <div class="modal-eyebrow" id="appModalEyebrow">Unsaved Changes</div>
+      <h2 class="modal-title" id="appModalTitle">Leave this page?</h2>
+      <p class="modal-message" id="appModalMessage"></p>
+      <div class="modal-actions">
+        <button type="button" id="appModalCancel" class="modal-btn modal-btn-secondary">Stay Here</button>
+        <button type="button" id="appModalConfirm" class="modal-btn modal-btn-primary">Leave Page</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
     function toggleSection(sectionSelector, shouldShow) {
@@ -1224,6 +1322,57 @@
       let initialEditorState = "";
       let allowNavigationWithoutWarning = false;
 
+      function openConfirmModal(title, message) {
+        const $overlay = $("#appModal");
+        const $title = $("#appModalTitle");
+        const $message = $("#appModalMessage");
+        const $eyebrow = $("#appModalEyebrow");
+        const $cancel = $("#appModalCancel");
+        const $confirm = $("#appModalConfirm");
+
+        $eyebrow.text("Unsaved Changes");
+        $title.text(title);
+        $message.text(message);
+        $cancel.text("Stay Here");
+        $confirm.text("Leave Page");
+        $overlay.addClass("open").attr("aria-hidden", "false");
+
+        return new Promise((resolve) => {
+          function close(result) {
+            $overlay.removeClass("open").attr("aria-hidden", "true");
+            $confirm.off("click.modal");
+            $cancel.off("click.modal");
+            $overlay.off("click.modal");
+            $(document).off("keydown.modal");
+            resolve(result);
+          }
+
+          $confirm.on("click.modal", function () {
+            close({ confirmed: true });
+          });
+
+          $cancel.on("click.modal", function () {
+            close({ confirmed: false });
+          });
+
+          $overlay.on("click.modal", function (event) {
+            if (event.target === this) {
+              close({ confirmed: false });
+            }
+          });
+
+          $(document).on("keydown.modal", function (event) {
+            if (event.key === "Escape") {
+              close({ confirmed: false });
+            }
+          });
+
+          setTimeout(function () {
+            $cancel.trigger("focus");
+          }, 10);
+        });
+      }
+
       refreshEducationVisibility();
       renderSkillsPreview({{ ((selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else (profile.skills_entries if profile and profile.skills_entries else []))) | tojson }}, $("#previewSkillsText").text().trim() || "");
       renderCertificationPreview({{ ((selected_resume.certifications_entries if selected_resume and selected_resume.certifications_entries else (profile.certifications_entries if profile and profile.certifications_entries else []))) | tojson }}, $("#previewCertificationsText").text().trim() || "");
@@ -1240,6 +1389,30 @@
         if (getCurrentEditorState() !== initialEditorState) {
           event.preventDefault();
           event.returnValue = "";
+        }
+      });
+
+      $(document).on("click", "a[href]", async function (event) {
+        const href = $(this).attr("href");
+        const target = $(this).attr("target");
+
+        if (!href || href.startsWith("#") || href.startsWith("javascript:") || target === "_blank") {
+          return;
+        }
+
+        if (allowNavigationWithoutWarning || getCurrentEditorState() === initialEditorState) {
+          return;
+        }
+
+        event.preventDefault();
+        const result = await openConfirmModal(
+          "Leave this page?",
+          "You have unsaved resume changes. If you leave now, those edits may be lost."
+        );
+
+        if (result.confirmed) {
+          allowNavigationWithoutWarning = true;
+          window.location.href = href;
         }
       });
 
