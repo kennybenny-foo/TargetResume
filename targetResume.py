@@ -156,6 +156,28 @@ def prepare_profile_for_view(profile):
     return profile
 
 
+def parse_ai_rewrite_response(parsed, profile):
+    skills_entries = normalize_skills_entries(parsed.get("skills_entries"))
+    project_entries = normalize_resume_entries(parsed.get("projects_entries"))
+    experience_entries = normalize_resume_entries(parsed.get("experience_entries"))
+
+    if not skills_entries:
+        skills_entries = normalize_skills_entries(profile.get("skills_entries"))
+    if not project_entries:
+        project_entries = normalize_resume_entries(profile.get("projects_entries"))
+    if not experience_entries:
+        experience_entries = normalize_resume_entries(profile.get("experience_entries"))
+
+    return {
+        "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
+        "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
+        "experience": format_resume_entries(experience_entries) or profile.get("experience", ""),
+        "skills_entries": skills_entries,
+        "projects_entries": project_entries,
+        "experience_entries": experience_entries
+    }
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key")
 
@@ -241,7 +263,7 @@ def ai_rewrite_preview():
         return jsonify({"error": "OPENAI_API_KEY is not set."}), 500
 
     user_id = session["user_id"]
-    profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    profile = prepare_profile_for_view(profiles_collection.find_one({"user_id": user_id}))
 
     job_title = request.form.get("job_title", "").strip()
     job_description = request.form.get("job_description", "").strip()
@@ -256,9 +278,13 @@ def ai_rewrite_preview():
     if profile.get("school_location"):
         education_text += f", {profile.get('school_location')}"
     if profile.get("expected_grad"):
-        education_text += f" Expected Graduation {profile.get('expected_grad')}"
+        education_text += f" Graduation {profile.get('expected_grad')}"
     if profile.get("degree"):
         education_text += f"\n{profile.get('degree')}"
+
+    source_skills = profile.get("skills_entries") or profile.get("skills", "")
+    source_projects = profile.get("projects_entries") or profile.get("projects", "")
+    source_experience = profile.get("experience_entries") or profile.get("experience", "")
 
     prompt = f"""
 You are helping tailor a resume for a specific job.
@@ -271,20 +297,50 @@ skills
 projects
 experience
 
+The output must fit a strong one-page student resume.
+Select only the strongest and most relevant details for this specific target job.
+Do not include everything if that would make the resume too long.
+Prefer concise, high-impact bullets.
+Keep 1-3 strong projects and 1-3 strong experience entries when possible.
+Keep 2-4 bullets per project or experience entry.
+
 IMPORTANT:
 Return valid JSON.
-Each value must be a SINGLE STRING.
-Do NOT return arrays.
-Do NOT return nested objects.
-Do NOT return bullet objects.
-Use plain text only.
 
 Return exactly this JSON format:
 {{
-  "skills": "plain text string",
-  "projects": "plain text string",
-  "experience": "plain text string"
+  "skills_entries": [
+    {{
+      "category": "Languages",
+      "values": ["Java", "Python", "JavaScript"]
+    }}
+  ],
+  "projects_entries": [
+    {{
+      "title": "Project name",
+      "details": "optional short detail line such as tech stack",
+      "bullets": [
+        "short bullet",
+        "short bullet"
+      ]
+    }}
+  ],
+  "experience_entries": [
+    {{
+      "title": "Role or organization",
+      "details": "optional short detail line such as company | location | dates",
+      "bullets": [
+        "short bullet",
+        "short bullet"
+      ]
+    }}
+  ]
 }}
+
+Do not return any keys other than:
+skills_entries
+projects_entries
+experience_entries
 
 Target job title:
 {job_title}
@@ -298,9 +354,9 @@ Special focus from user:
 User profile data:
 Name: {profile.get("name", "")}
 Education: {education_text}
-Skills: {profile.get("skills", "")}
-Projects: {profile.get("projects", "")}
-Experience: {profile.get("experience", "")}
+Skills: {json.dumps(source_skills, ensure_ascii=True)}
+Projects: {json.dumps(source_projects, ensure_ascii=True)}
+Experience: {json.dumps(source_experience, ensure_ascii=True)}
 Certifications: {profile.get("certifications", "")}
 """
 
@@ -312,21 +368,7 @@ Certifications: {profile.get("certifications", "")}
 
         raw_text = response.output_text.strip()
         parsed = json.loads(raw_text)
-
-        def normalize_to_text(value):
-            if isinstance(value, str):
-                return value
-            if isinstance(value, list):
-                return "\n".join(str(item) for item in value)
-            if isinstance(value, dict):
-                return "\n".join(f"{k}: {v}" for k, v in value.items())
-            return str(value)
-
-        return jsonify({
-            "skills": normalize_to_text(parsed.get("skills", profile.get("skills", ""))),
-            "projects": normalize_to_text(parsed.get("projects", profile.get("projects", ""))),
-            "experience": normalize_to_text(parsed.get("experience", profile.get("experience", "")))
-        })
+        return jsonify(parse_ai_rewrite_response(parsed, profile))
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

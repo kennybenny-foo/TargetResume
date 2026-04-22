@@ -779,17 +779,40 @@
     }
 
     function updatePreviewFromResponse(response) {
-      $("#previewName").text(response.name || "Your Name");
-      $("#previewContact").text(response.contact || "Email | Phone | LinkedIn | Portfolio");
-      $("#previewEducationTop").text(response.education_top || "");
-      $("#previewEducationGrad").text(response.education_grad ? `Graduation ${response.education_grad}` : "");
-      $("#previewEducationBottom").text(response.education_bottom || "");
-      $("#previewSkillsText").text(response.skills || "");
-      renderSkillsPreview(response.skills_entries, response.skills || "Technical skills will appear here.");
-      $("#previewProjectsText").text(response.projects || "");
-      $("#previewExperienceText").text(response.experience || "");
-      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", response.projects_entries, response.projects || "Projects will appear here.");
-      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", response.experience_entries, response.experience || "Work experience will appear here.");
+      if (Object.prototype.hasOwnProperty.call(response, "name")) {
+        $("#previewName").text(response.name || "Your Name");
+      }
+      if (Object.prototype.hasOwnProperty.call(response, "contact")) {
+        $("#previewContact").text(response.contact || "Email | Phone | LinkedIn | Portfolio");
+      }
+      if (Object.prototype.hasOwnProperty.call(response, "education_top")) {
+        $("#previewEducationTop").text(response.education_top || "");
+      }
+      if (Object.prototype.hasOwnProperty.call(response, "education_grad")) {
+        $("#previewEducationGrad").text(response.education_grad ? `Graduation ${response.education_grad}` : "");
+      }
+      if (Object.prototype.hasOwnProperty.call(response, "education_bottom")) {
+        $("#previewEducationBottom").text(response.education_bottom || "");
+      }
+
+      const skillsText = Object.prototype.hasOwnProperty.call(response, "skills")
+        ? (response.skills || "")
+        : $("#previewSkillsText").text().trim();
+      $("#previewSkillsText").text(skillsText);
+      renderSkillsPreview(response.skills_entries, skillsText || "Technical skills will appear here.");
+
+      const projectsText = Object.prototype.hasOwnProperty.call(response, "projects")
+        ? (response.projects || "")
+        : $("#previewProjectsText").text().trim();
+      $("#previewProjectsText").text(projectsText);
+
+      const experienceText = Object.prototype.hasOwnProperty.call(response, "experience")
+        ? (response.experience || "")
+        : $("#previewExperienceText").text().trim();
+      $("#previewExperienceText").text(experienceText);
+
+      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", response.projects_entries, projectsText || "Projects will appear here.");
+      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", response.experience_entries, experienceText || "Work experience will appear here.");
       syncPreviewToHiddenFields();
     }
 
@@ -824,24 +847,7 @@
           type: "POST",
           data: $("#resumeForm").serialize(),
           success: function (response) {
-            function safeText(value) {
-              if (typeof value === "string") {
-                return value;
-              }
-              return JSON.stringify(value, null, 2);
-            }
-
-            const normalizedResponse = {
-              ...response,
-              skills: safeText(response.skills || ""),
-              projects: safeText(response.projects || ""),
-              experience: safeText(response.experience || ""),
-              skills_entries: [],
-              projects_entries: [],
-              experience_entries: []
-            };
-
-            updatePreviewFromResponse(normalizedResponse);
+            updatePreviewFromResponse(response);
             syncPreviewToHiddenFields();
             showStatus("AI rewrite applied to the preview.");
           },
