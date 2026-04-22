@@ -577,7 +577,7 @@
                   {% for entry in profile.skills_entries %}
                     <li>
                       {% if entry.category %}<span class="skills-category">{{ entry.category }}:</span>{% endif %}
-                      {{ entry.values | join(', ') }}
+                      {{ entry["values"] | join(', ') }}
                     </li>
                   {% endfor %}
                 </ul>
