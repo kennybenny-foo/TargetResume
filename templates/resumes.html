@@ -251,7 +251,6 @@
 
     .resume-label {
       display: inline-block;
-      margin-bottom: 14px;
       padding: 7px 11px;
       border-radius: 999px;
       background: #eef5ef;
@@ -265,6 +264,28 @@
       font-size: 1.15rem;
       margin-bottom: 8px;
       color: #0f172a;
+    }
+
+    .resume-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .resume-folder-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .folder-inline-label {
+      color: #334155;
+      font-size: 0.92rem;
+      font-weight: 600;
     }
 
     .target-role {
@@ -288,16 +309,8 @@
       flex-wrap: wrap;
     }
 
-    .move-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
     .move-select {
-      min-width: 180px;
+      min-width: 160px;
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid #d9e3da;
@@ -426,7 +439,21 @@
         <section class="resume-grid">
           {% for resume in resumes %}
           <div class="resume-card" id="resume-{{ resume._id }}">
-            <span class="resume-label">{{ resume.folder if resume.folder else "Saved Drafts" }}</span>
+            <div class="resume-card-top">
+              <span class="resume-label">{{ resume.folder if resume.folder else "Saved Drafts" }}</span>
+              <div class="resume-folder-controls">
+                <span class="folder-inline-label">Folder:</span>
+                <select class="move-select" data-id="{{ resume._id }}">
+                  {% for folder in folder_names %}
+                    <option value="{{ folder }}" {% if (resume.folder if resume.folder else "Saved Drafts") == folder %}selected{% endif %}>{{ folder }}</option>
+                  {% endfor %}
+                  {% if "Saved Drafts" not in folder_names %}
+                    <option value="Saved Drafts" {% if (resume.folder if resume.folder else "Saved Drafts") == "Saved Drafts" %}selected{% endif %}>Saved Drafts</option>
+                  {% endif %}
+                </select>
+                <button type="button" class="move-btn move-resume-btn" data-id="{{ resume._id }}">Move</button>
+              </div>
+            </div>
             <h3>{{ resume.title }}</h3>
             <p class="target-role">
               Target Role: {{ resume.job_title if resume.job_title else "Untitled Role" }}
@@ -436,18 +463,6 @@
               <div><strong>Folder:</strong> {{ resume.folder if resume.folder else "Saved Drafts" }}</div>
               <div><strong>Saved:</strong> {{ resume.display_date if resume.display_date else "" }}</div>
               <div><strong>Time:</strong> {{ resume.display_time if resume.display_time else "" }}</div>
-            </div>
-
-            <div class="move-row">
-              <select class="move-select" data-id="{{ resume._id }}">
-                {% for folder in folder_names %}
-                  <option value="{{ folder }}" {% if (resume.folder if resume.folder else "Saved Drafts") == folder %}selected{% endif %}>{{ folder }}</option>
-                {% endfor %}
-                {% if "Saved Drafts" not in folder_names %}
-                  <option value="Saved Drafts" {% if (resume.folder if resume.folder else "Saved Drafts") == "Saved Drafts" %}selected{% endif %}>Saved Drafts</option>
-                {% endif %}
-              </select>
-              <button type="button" class="move-btn move-resume-btn" data-id="{{ resume._id }}">Move</button>
             </div>
 
             <div class="resume-actions">
