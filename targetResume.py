@@ -525,7 +525,8 @@ def export_resume():
 
     def draw_section_title(title):
         nonlocal y
-        ensure_space(24)
+        ensure_space(30)
+        y -= 4
         p.setFont("Times-Bold", 11)
         p.drawString(left_margin, y, title)
         y -= 6
@@ -596,6 +597,7 @@ def export_resume():
             right_wrapped = split_text_to_lines(right_text, "Times-Roman", 10.2, column_width - 14) if right_text else []
             row_height = max(len(left_wrapped), len(right_wrapped), 1) * 12
             ensure_space(row_height)
+            p.setFont("Times-Roman", 10.2)
 
             for index, line in enumerate(left_wrapped):
                 current_y = y - (index * 12)
