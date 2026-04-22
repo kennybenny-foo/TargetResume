@@ -149,12 +149,71 @@ def format_skills_entries(entries):
     return "\n".join(lines)
 
 
+def parse_skills_text_to_entries(text):
+    entries = []
+    for raw_line in normalize_text_block(text).splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("- "):
+            line = line[2:].strip()
+        parts = line.split(":")
+        if len(parts) > 1:
+            category = parts[0].strip()
+            values = [item.strip() for item in ":".join(parts[1:]).split(",") if item.strip()]
+        else:
+            category = ""
+            values = [item.strip() for item in line.split(",") if item.strip()]
+        if category or values:
+            entries.append({
+                "category": category,
+                "values": values
+            })
+    return entries
+
+
+def parse_resume_text_to_entries(text):
+    entries = []
+    current = None
+    for raw_line in normalize_text_block(text).splitlines():
+        line = raw_line.strip()
+        if not line:
+            if current:
+                entries.append(current)
+                current = None
+            continue
+        if line.startswith("- "):
+            if current is None:
+                current = {"title": "", "details": "", "bullets": []}
+            current["bullets"].append(line[2:].strip())
+        else:
+            if current:
+                entries.append(current)
+            parts = [part.strip() for part in line.split("|")]
+            current = {
+                "title": parts[0] if parts else "",
+                "details": " | ".join(parts[1:]) if len(parts) > 1 else "",
+                "bullets": []
+            }
+    if current:
+        entries.append(current)
+    return [entry for entry in entries if entry.get("title") or entry.get("details") or entry.get("bullets")]
+
+
 def prepare_profile_for_view(profile):
     profile = profile or {}
-    profile["skills_entries"] = normalize_skills_entries(profile.get("skills_entries"))
-    profile["projects_entries"] = normalize_resume_entries(profile.get("projects_entries"))
-    profile["experience_entries"] = normalize_resume_entries(profile.get("experience_entries"))
+    profile["skills_entries"] = normalize_skills_entries(profile.get("skills_entries")) or parse_skills_text_to_entries(profile.get("skills", ""))
+    profile["projects_entries"] = normalize_resume_entries(profile.get("projects_entries")) or parse_resume_text_to_entries(profile.get("projects", ""))
+    profile["experience_entries"] = normalize_resume_entries(profile.get("experience_entries")) or parse_resume_text_to_entries(profile.get("experience", ""))
     return profile
+
+
+def prepare_resume_for_view(resume):
+    resume = resume or {}
+    resume["skills_entries"] = normalize_skills_entries(resume.get("skills_entries")) or parse_skills_text_to_entries(resume.get("skills", ""))
+    resume["projects_entries"] = normalize_resume_entries(resume.get("projects_entries")) or parse_resume_text_to_entries(resume.get("projects", ""))
+    resume["experience_entries"] = normalize_resume_entries(resume.get("experience_entries")) or parse_resume_text_to_entries(resume.get("experience", ""))
+    return resume
 
 
 def parse_ai_rewrite_response(parsed, profile):
@@ -269,6 +328,7 @@ def dashboard():
             "_id": ObjectId(resume_id),
             "user_id": user_id
         })
+        selected_resume = prepare_resume_for_view(selected_resume)
 
     return render_template("dashboard.html", profile=profile, selected_resume=selected_resume)
 
@@ -466,6 +526,9 @@ def save_resume_version():
         "skills": request.form.get("tailored_skills"),
         "projects": request.form.get("tailored_projects"),
         "experience": request.form.get("tailored_experience"),
+        "skills_entries": normalize_skills_entries(request.form.get("skills_entries")),
+        "projects_entries": normalize_resume_entries(request.form.get("projects_entries")),
+        "experience_entries": normalize_resume_entries(request.form.get("experience_entries")),
 
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
