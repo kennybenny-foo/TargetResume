@@ -501,6 +501,7 @@
                 <div class="folder-menu-wrap">
                   <button type="button" class="folder-menu-btn" data-folder="{{ folder.name }}" aria-label="Folder options">&#8942;</button>
                   <div class="folder-menu" data-folder-menu="{{ folder.name }}">
+                    <button type="button" class="folder-action-btn" data-action="rename" data-folder="{{ folder.name }}">Rename</button>
                     <button type="button" class="folder-action-btn" data-action="move_up" data-folder="{{ folder.name }}">Move Up</button>
                     <button type="button" class="folder-action-btn" data-action="move_down" data-folder="{{ folder.name }}">Move Down</button>
                     <button type="button" class="folder-action-btn danger" data-action="delete" data-folder="{{ folder.name }}">Delete</button>
@@ -557,6 +558,7 @@
 
             <div class="resume-actions">
               <a href="/dashboard?resume_id={{ resume._id }}" class="open-btn" style="text-decoration: none;">Open</a>
+              <button type="button" class="move-btn duplicate-resume-btn" data-id="{{ resume._id }}">Duplicate</button>
               <button type="button" class="delete-btn delete-resume-btn" data-id="{{ resume._id }}">Delete</button>
             </div>
           </div>
@@ -591,6 +593,19 @@
       $(".folder-action-btn").on("click", function () {
         const folderName = $(this).data("folder");
         const action = $(this).data("action");
+        let requestData = {
+          folder_name: folderName,
+          action: action
+        };
+
+        if (action === "rename") {
+          const newName = prompt("Rename folder to:", folderName);
+          if (!newName || newName.trim() === folderName) {
+            return;
+          }
+          requestData.new_name = newName.trim();
+        }
+
         const confirmDelete = action !== "delete" || confirm(`Delete folder "${folderName}"? Resumes in it will move to Saved Drafts.`);
 
         if (!confirmDelete) {
@@ -600,10 +615,7 @@
         $.ajax({
           url: "/folder-action",
           type: "POST",
-          data: {
-            folder_name: folderName,
-            action: action
-          },
+          data: requestData,
           success: function (response) {
             if (response.success) {
               location.reload();
@@ -616,6 +628,31 @@
               ? xhr.responseJSON.error
               : "Something went wrong while updating the folder.";
             alert(message);
+          }
+        });
+      });
+
+      $(".duplicate-resume-btn").on("click", function () {
+        const resumeId = $(this).data("id");
+        const $button = $(this);
+
+        $button.prop("disabled", true).text("Duplicating...");
+
+        $.ajax({
+          url: "/duplicate-resume/" + resumeId,
+          type: "POST",
+          success: function (response) {
+            if (response.success) {
+              location.reload();
+            } else {
+              alert("Could not duplicate resume.");
+            }
+          },
+          error: function () {
+            alert("Something went wrong while duplicating the resume.");
+          },
+          complete: function () {
+            $button.prop("disabled", false).text("Duplicate");
           }
         });
       });

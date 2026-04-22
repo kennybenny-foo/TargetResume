@@ -903,6 +903,7 @@ def folder_action():
     user_id = session["user_id"]
     folder_name = request.form.get("folder_name", "").strip()
     action = request.form.get("action", "").strip()
+    new_name = request.form.get("new_name", "").strip()
 
     if not folder_name or folder_name == "Saved Drafts":
         return jsonify({"success": False, "error": "Folder cannot be modified."}), 400
@@ -915,6 +916,27 @@ def folder_action():
 
     if target_index is None:
         return jsonify({"success": False, "error": "Folder not found."}), 404
+
+    if action == "rename":
+        if not new_name or new_name == "Saved Drafts":
+            return jsonify({"success": False, "error": "Choose a different folder name."}), 400
+
+        existing_folder = folders_collection.find_one({
+            "user_id": user_id,
+            "name": new_name
+        })
+        if existing_folder:
+            return jsonify({"success": False, "error": "A folder with that name already exists."}), 400
+
+        folders_collection.update_one(
+            {"user_id": user_id, "name": folder_name},
+            {"$set": {"name": new_name}}
+        )
+        resumes_collection.update_many(
+            {"user_id": user_id, "folder": folder_name},
+            {"$set": {"folder": new_name, "updated_at": datetime.utcnow()}}
+        )
+        return jsonify({"success": True, "folder": new_name})
 
     if action == "delete":
         resumes_collection.update_many(
@@ -975,6 +997,30 @@ def move_resume(resume_id):
         return jsonify({"success": True, "folder": target_folder})
 
     return jsonify({"success": False, "error": "Resume not found"}), 404
+
+
+@app.route("/duplicate-resume/<resume_id>", methods=["POST"])
+def duplicate_resume(resume_id):
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    existing_resume = resumes_collection.find_one({
+        "_id": ObjectId(resume_id),
+        "user_id": user_id
+    })
+
+    if not existing_resume:
+        return jsonify({"success": False, "error": "Resume not found"}), 404
+
+    duplicate_doc = {key: value for key, value in existing_resume.items() if key != "_id"}
+    original_title = duplicate_doc.get("title") or "Untitled Resume"
+    duplicate_doc["title"] = f"{original_title} (Copy)"
+    duplicate_doc["created_at"] = datetime.utcnow()
+    duplicate_doc["updated_at"] = datetime.utcnow()
+
+    result = resumes_collection.insert_one(duplicate_doc)
+    return jsonify({"success": True, "resume_id": str(result.inserted_id)})
 
 
 @app.route("/delete-resume/<resume_id>", methods=["POST"])

@@ -986,6 +986,22 @@
       $("#savedExperienceEntries").val(JSON.stringify(extractEntriesFromPreview("#previewExperienceEntries")));
     }
 
+    function getCurrentEditorState() {
+      syncPreviewToHiddenFields();
+      return JSON.stringify({
+        folder: $("#folder").val(),
+        jobTitle: $("#jobtitle").val(),
+        jobDescription: $("#jobdescription").val(),
+        notes: $("#notes").val(),
+        savedSkills: $("#savedSkills").val(),
+        savedProjects: $("#savedProjects").val(),
+        savedExperience: $("#savedExperience").val(),
+        savedSkillsEntries: $("#savedSkillsEntries").val(),
+        savedProjectsEntries: $("#savedProjectsEntries").val(),
+        savedExperienceEntries: $("#savedExperienceEntries").val()
+      });
+    }
+
     function updatePreviewFromResponse(response) {
       if (Object.prototype.hasOwnProperty.call(response, "name")) {
         $("#previewName").text(response.name || "Your Name");
@@ -1025,10 +1041,25 @@
     }
 
     $(document).ready(function () {
+      let initialEditorState = "";
+      let allowNavigationWithoutWarning = false;
+
       renderSkillsPreview({{ ((selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else (profile.skills_entries if profile and profile.skills_entries else []))) | tojson }}, $("#previewSkillsText").text().trim() || "Technical skills will appear here.");
       renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ ((selected_resume.projects_entries if selected_resume and selected_resume.projects_entries else (profile.projects_entries if profile and profile.projects_entries else []))) | tojson }}, $("#previewProjectsText").text().trim() || "Projects will appear here.");
       renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", {{ ((selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else (profile.experience_entries if profile and profile.experience_entries else []))) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
       syncPreviewToHiddenFields();
+      initialEditorState = getCurrentEditorState();
+
+      window.addEventListener("beforeunload", function (event) {
+        if (allowNavigationWithoutWarning) {
+          return;
+        }
+
+        if (getCurrentEditorState() !== initialEditorState) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
 
       $("#generateBtn").on("click", function () {
         $.ajax({
@@ -1081,6 +1112,8 @@
          data: $("#resumeForm").serialize(),
         success: function (response) {
           if (response.success) {
+            initialEditorState = getCurrentEditorState();
+            allowNavigationWithoutWarning = true;
             showStatus("Resume version saved. Redirecting to My Resumes...");
             setTimeout(function () {
               window.location.href = "/resumes";
@@ -1101,6 +1134,7 @@
 
       $("#exportBtn").on("click", function () {
         syncPreviewToHiddenFields();
+        allowNavigationWithoutWarning = true;
 
         const params = $.param({
           job_title: $("#jobtitle").val(),
@@ -1110,6 +1144,9 @@
         });
 
         window.location.href = "/export-resume?" + params;
+        setTimeout(function () {
+          allowNavigationWithoutWarning = false;
+        }, 1000);
       });
     });
   </script>
