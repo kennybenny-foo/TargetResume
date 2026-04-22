@@ -258,6 +258,14 @@
       transition: 0.2s ease;
     }
 
+    .primary-btn:disabled,
+    .secondary-btn:disabled,
+    .ghost-btn:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
+    }
+
     .primary-btn {
       background: #5f8a66;
       color: white;
@@ -277,6 +285,28 @@
 
     .secondary-btn:hover {
       background: #e3efe4;
+    }
+
+    .btn-loading {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(63, 95, 69, 0.22);
+      border-top-color: #3f5f45;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .ghost-btn {
@@ -772,6 +802,22 @@
       $("#statusMessage").stop(true, true).hide().text(message).fadeIn(150);
     }
 
+    function setRewriteLoadingState(isLoading) {
+      const $button = $("#rewriteBtn");
+
+      if (isLoading) {
+        $button.prop("disabled", true);
+        $button.data("original-html", $button.html());
+        $button.html('<span class="btn-loading"><span class="spinner"></span><span>AI Rewriting...</span></span>');
+        return;
+      }
+
+      $button.prop("disabled", false);
+      if ($button.data("original-html")) {
+        $button.html($button.data("original-html"));
+      }
+    }
+
     function syncPreviewToHiddenFields() {
       $("#savedSkills").val($("#previewSkillsText").text().trim());
       $("#savedProjects").val($("#previewProjectsText").text().trim());
@@ -842,6 +888,7 @@
       });
 
       $("#rewriteBtn").on("click", function () {
+        setRewriteLoadingState(true);
         $.ajax({
           url: "/ai-rewrite-preview",
           type: "POST",
@@ -850,6 +897,7 @@
             updatePreviewFromResponse(response);
             syncPreviewToHiddenFields();
             showStatus("AI rewrite applied to the preview.");
+            setRewriteLoadingState(false);
           },
           error: function (xhr) {
             let msg = "Could not rewrite preview.";
@@ -857,6 +905,7 @@
               msg = xhr.responseJSON.error;
             }
             showStatus(msg);
+            setRewriteLoadingState(false);
           }
         });
       });
