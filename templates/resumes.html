@@ -160,6 +160,10 @@
       margin-bottom: 16px;
     }
 
+    .folder-row {
+      position: relative;
+    }
+
     .folder-create {
       display: grid;
       gap: 10px;
@@ -184,7 +188,10 @@
     }
 
     .folder-item {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       padding: 12px 14px;
       border-radius: 14px;
       background: #ffffff;
@@ -204,6 +211,85 @@
       background: #eef5ef;
       color: #3f5f45;
       border-color: #d3e1d4;
+    }
+
+    .folder-link {
+      text-decoration: none;
+      color: inherit;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .folder-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .folder-menu-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .folder-menu-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid #d9e3da;
+      background: #ffffff;
+      color: #5f6f63;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .folder-menu-btn:hover {
+      background: #f3f7f3;
+      color: #3f5f45;
+    }
+
+    .folder-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 150px;
+      background: #ffffff;
+      border: 1px solid #dfe7e1;
+      border-radius: 14px;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+      padding: 8px;
+      display: none;
+      z-index: 20;
+    }
+
+    .folder-menu.open {
+      display: block;
+    }
+
+    .folder-menu button {
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: #334155;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+
+    .folder-menu button:hover {
+      background: #f4f8f4;
+      color: #1e293b;
+    }
+
+    .folder-menu .danger {
+      color: #b91c1c;
+    }
+
+    .folder-menu .danger:hover {
+      background: #fef2f2;
+      color: #991b1b;
     }
 
     .main-content {
@@ -403,10 +489,24 @@
 
       <div class="folder-list">
         <a href="/resumes?folder=All%20Resumes" class="folder-item {% if selected_folder == 'All Resumes' %}active{% endif %}">All Resumes</a>
-        {% for folder in folder_names %}
-          <a href="/resumes?folder={{ folder | urlencode }}" class="folder-item {% if selected_folder == folder %}active{% endif %}">
-            {{ folder }}
-          </a>
+        {% for folder in folder_items %}
+          <div class="folder-row">
+            <div class="folder-item {% if selected_folder == folder.name %}active{% endif %}">
+              <a href="/resumes?folder={{ folder.name | urlencode }}" class="folder-link">
+                <span class="folder-name">{{ folder.name }}</span>
+              </a>
+              {% if folder.can_manage %}
+                <div class="folder-menu-wrap">
+                  <button type="button" class="folder-menu-btn" data-folder="{{ folder.name }}" aria-label="Folder options">...</button>
+                  <div class="folder-menu" data-folder-menu="{{ folder.name }}">
+                    <button type="button" class="folder-action-btn" data-action="move_up" data-folder="{{ folder.name }}">Move Up</button>
+                    <button type="button" class="folder-action-btn" data-action="move_down" data-folder="{{ folder.name }}">Move Down</button>
+                    <button type="button" class="folder-action-btn danger" data-action="delete" data-folder="{{ folder.name }}">Delete</button>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
         {% endfor %}
       </div>
 
@@ -471,6 +571,53 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
     $(document).ready(function () {
+      $(document).on("click", function (event) {
+        if (!$(event.target).closest(".folder-menu-wrap").length) {
+          $(".folder-menu").removeClass("open");
+        }
+      });
+
+      $(".folder-menu-btn").on("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const folderName = $(this).data("folder");
+        const $menu = $(`[data-folder-menu="${folderName}"]`);
+        $(".folder-menu").not($menu).removeClass("open");
+        $menu.toggleClass("open");
+      });
+
+      $(".folder-action-btn").on("click", function () {
+        const folderName = $(this).data("folder");
+        const action = $(this).data("action");
+        const confirmDelete = action !== "delete" || confirm(`Delete folder "${folderName}"? Resumes in it will move to Saved Drafts.`);
+
+        if (!confirmDelete) {
+          return;
+        }
+
+        $.ajax({
+          url: "/folder-action",
+          type: "POST",
+          data: {
+            folder_name: folderName,
+            action: action
+          },
+          success: function (response) {
+            if (response.success) {
+              location.reload();
+            } else {
+              alert("Could not update folder.");
+            }
+          },
+          error: function (xhr) {
+            const message = xhr.responseJSON && xhr.responseJSON.error
+              ? xhr.responseJSON.error
+              : "Something went wrong while updating the folder.";
+            alert(message);
+          }
+        });
+      });
+
       $(".move-resume-btn").on("click", function () {
         const resumeId = $(this).data("id");
         const $card = $("#resume-" + resumeId);

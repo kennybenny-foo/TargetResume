@@ -231,6 +231,61 @@ def format_datetime_for_display(value):
     return display_value.strftime("%b %d, %Y"), display_value.strftime("%I:%M %p")
 
 
+def ensure_folder_record(user_id, folder_name):
+    folder_name = (folder_name or "").strip()
+    if not folder_name or folder_name == "Saved Drafts":
+        return
+
+    highest_order_folder = folders_collection.find_one(
+        {"user_id": user_id},
+        sort=[("sort_order", -1)]
+    )
+    next_order = (highest_order_folder.get("sort_order", 0) + 1) if highest_order_folder else 1
+
+    folders_collection.update_one(
+        {"user_id": user_id, "name": folder_name},
+        {"$setOnInsert": {
+            "user_id": user_id,
+            "name": folder_name,
+            "sort_order": next_order,
+            "created_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
+
+
+def build_folder_sidebar(user_id, resumes):
+    folder_docs = list(
+        folders_collection.find({"user_id": user_id}).sort("sort_order", 1)
+    )
+    ordered_folder_names = []
+    seen = set()
+
+    for folder in folder_docs:
+        name = folder.get("name", "").strip()
+        if not name or name in seen:
+            continue
+        ordered_folder_names.append(name)
+        seen.add(name)
+
+    resume_folder_names = {
+        (resume.get("folder") or "Saved Drafts").strip() or "Saved Drafts"
+        for resume in resumes
+    }
+
+    for folder_name in sorted(resume_folder_names):
+        if folder_name not in seen and folder_name != "Saved Drafts":
+            ordered_folder_names.append(folder_name)
+            seen.add(folder_name)
+
+    folder_items = [{"name": "Saved Drafts", "can_manage": False}]
+    folder_items.extend({
+        "name": name,
+        "can_manage": True
+    } for name in ordered_folder_names if name != "Saved Drafts")
+    return folder_items
+
+
 def parse_ai_rewrite_response(parsed, profile):
     skills_entries = normalize_skills_entries(parsed.get("skills_entries"))
     project_entries = normalize_resume_entries(parsed.get("projects_entries"))
@@ -549,6 +604,8 @@ def save_resume_version():
         "updated_at": datetime.utcnow()
     }
 
+    ensure_folder_record(user_id, folder)
+
     result = resumes_collection.insert_one(resume_doc)
 
     return jsonify({
@@ -797,18 +854,8 @@ def resumes():
     all_resumes = list(
         resumes_collection.find({"user_id": user_id}).sort("updated_at", -1)
     )
-
-    resume_folder_names = {
-        resume.get("folder", "Saved Drafts")
-        for resume in all_resumes
-        if resume.get("folder")
-    }
-    created_folder_names = {
-        folder.get("name", "").strip()
-        for folder in folders_collection.find({"user_id": user_id})
-        if folder.get("name")
-    }
-    folder_names = sorted(resume_folder_names | created_folder_names)
+    folder_items = build_folder_sidebar(user_id, all_resumes)
+    folder_names = [item["name"] for item in folder_items]
 
     if selected_folder == "All Resumes":
         filtered_resumes = all_resumes
@@ -826,6 +873,7 @@ def resumes():
     return render_template(
         "resumes.html",
         resumes=filtered_resumes,
+        folder_items=folder_items,
         folder_names=folder_names,
         selected_folder=selected_folder
     )
@@ -842,17 +890,62 @@ def create_folder():
     if not folder_name:
         return redirect(url_for("resumes"))
 
-    folders_collection.update_one(
-        {"user_id": user_id, "name": folder_name},
-        {"$setOnInsert": {
-            "user_id": user_id,
-            "name": folder_name,
-            "created_at": datetime.utcnow()
-        }},
-        upsert=True
-    )
+    ensure_folder_record(user_id, folder_name)
 
     return redirect(url_for("resumes", folder=folder_name))
+
+
+@app.route("/folder-action", methods=["POST"])
+def folder_action():
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    folder_name = request.form.get("folder_name", "").strip()
+    action = request.form.get("action", "").strip()
+
+    if not folder_name or folder_name == "Saved Drafts":
+        return jsonify({"success": False, "error": "Folder cannot be modified."}), 400
+
+    ensure_folder_record(user_id, folder_name)
+    folder_docs = list(
+        folders_collection.find({"user_id": user_id}).sort("sort_order", 1)
+    )
+    target_index = next((index for index, item in enumerate(folder_docs) if item.get("name") == folder_name), None)
+
+    if target_index is None:
+        return jsonify({"success": False, "error": "Folder not found."}), 404
+
+    if action == "delete":
+        resumes_collection.update_many(
+            {"user_id": user_id, "folder": folder_name},
+            {"$set": {"folder": "Saved Drafts", "updated_at": datetime.utcnow()}}
+        )
+        folders_collection.delete_one({"user_id": user_id, "name": folder_name})
+        return jsonify({"success": True})
+
+    if action not in {"move_up", "move_down"}:
+        return jsonify({"success": False, "error": "Unsupported action."}), 400
+
+    swap_index = target_index - 1 if action == "move_up" else target_index + 1
+    if swap_index < 0 or swap_index >= len(folder_docs):
+        return jsonify({"success": False, "error": "Folder cannot move further."}), 400
+
+    current_folder = folder_docs[target_index]
+    swap_folder = folder_docs[swap_index]
+    current_order = current_folder.get("sort_order", target_index + 1)
+    swap_order = swap_folder.get("sort_order", swap_index + 1)
+
+    folders_collection.update_one(
+        {"_id": current_folder["_id"]},
+        {"$set": {"sort_order": swap_order}}
+    )
+    folders_collection.update_one(
+        {"_id": swap_folder["_id"]},
+        {"$set": {"sort_order": current_order}}
+    )
+
+    return jsonify({"success": True})
 
 
 @app.route("/move-resume/<resume_id>", methods=["POST"])
@@ -863,15 +956,7 @@ def move_resume(resume_id):
     user_id = session["user_id"]
     target_folder = request.form.get("folder", "").strip() or "Saved Drafts"
 
-    folders_collection.update_one(
-        {"user_id": user_id, "name": target_folder},
-        {"$setOnInsert": {
-            "user_id": user_id,
-            "name": target_folder,
-            "created_at": datetime.utcnow()
-        }},
-        upsert=True
-    )
+    ensure_folder_record(user_id, target_folder)
 
     result = resumes_collection.update_one(
         {
