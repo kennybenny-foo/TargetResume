@@ -5,6 +5,8 @@ APP_DIR="$HOME/TargetResume"
 APP_FILE="targetResume.py"
 VENV="$APP_DIR/.venv"
 PY="$VENV/bin/python"
+REMOTE="${REMOTE:-origin}"
+BRANCH="${BRANCH:-main}"
 
 LOG_DIR="$HOME/TargetResume_logs"
 mkdir -p "$LOG_DIR"
@@ -12,10 +14,26 @@ LOG="$LOG_DIR/log.txt"
 
 cd "$APP_DIR"
 
-echo "==> Syncing code to origin/main..."
-git fetch origin
-git reset --hard origin/main
-git clean -fd -e .venv -e TargetResume_logs -e log.txt -e .env
+echo "==> Syncing code to $REMOTE/$BRANCH..."
+git fetch "$REMOTE" "$BRANCH"
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "ERROR: Local changes detected. Commit or stash them before running this deploy script."
+  exit 1
+fi
+
+LOCAL_COMMIT="$(git rev-parse HEAD)"
+REMOTE_COMMIT="$(git rev-parse "$REMOTE/$BRANCH")"
+BASE_COMMIT="$(git merge-base HEAD "$REMOTE/$BRANCH")"
+
+if [ "$LOCAL_COMMIT" = "$REMOTE_COMMIT" ]; then
+  echo "==> Already up to date."
+elif [ "$LOCAL_COMMIT" = "$BASE_COMMIT" ]; then
+  git merge --ff-only "$REMOTE/$BRANCH"
+else
+  echo "ERROR: Branch has diverged from $REMOTE/$BRANCH. Pull or rebase manually before deploying."
+  exit 1
+fi
 
 echo "==> DEPLOYED COMMIT:"
 git log -1 --oneline
