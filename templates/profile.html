@@ -473,8 +473,11 @@
         </div>
 
         <div class="form-group">
-          <label for="certifications">Certifications / Extras</label>
-          <textarea id="certifications" name="certifications">{{ profile.certifications if profile else '' }}</textarea>
+          <label>Certifications</label>
+          <p class="helper-text">Add each certification separately with its name, when you earned it, and a short description if it adds context.</p>
+          <div id="certificationsBuilder" class="entry-builder"></div>
+          <button type="button" class="add-entry-btn" data-builder="certificationsBuilder" data-entry-label="Certification">+ Add Certification</button>
+          <input type="hidden" id="certifications_entries" name="certifications_entries" class="hidden-json">
         </div>
 
         <div class="button-row">
@@ -487,9 +490,11 @@
     const initialProjects = {{ (profile.projects_entries if profile and profile.projects_entries else []) | tojson }};
     const initialExperience = {{ (profile.experience_entries if profile and profile.experience_entries else []) | tojson }};
     const initialSkills = {{ (profile.skills_entries if profile and profile.skills_entries else []) | tojson }};
+    const initialCertifications = {{ (profile.certifications_entries if profile and profile.certifications_entries else []) | tojson }};
     const legacySkillsText = {{ (profile.skills if profile and profile.skills else "") | tojson }};
     const legacyProjectsText = {{ (profile.projects if profile and profile.projects else "") | tojson }};
     const legacyExperienceText = {{ (profile.experience if profile and profile.experience else "") | tojson }};
+    const legacyCertificationsText = {{ (profile.certifications if profile and profile.certifications else "") | tojson }};
 
     function convertLegacySkillsToEntries(text) {
       return text
@@ -522,6 +527,44 @@
         .map((line) => line.replace(/^[-*]\s*/, ""));
 
       return bullets.length ? [{ title: "", details: "", bullets }] : [];
+    }
+
+    function convertLegacyCertificationsToEntries(text) {
+      const entries = [];
+      let current = null;
+
+      text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .forEach((line) => {
+          if (!line) {
+            if (current) {
+              entries.push(current);
+              current = null;
+            }
+            return;
+          }
+
+          if (!current) {
+            const parts = line.split("|").map((part) => part.trim());
+            current = {
+              name: parts[0] || "",
+              date: parts.slice(1).join(" | "),
+              description: ""
+            };
+            return;
+          }
+
+          current.description = current.description
+            ? `${current.description} ${line}`
+            : line;
+        });
+
+      if (current) {
+        entries.push(current);
+      }
+
+      return entries.filter((entry) => entry.name || entry.date || entry.description);
     }
 
     function createSkillValueRow(value = "") {
@@ -692,6 +735,64 @@
       builder.appendChild(card);
     }
 
+    function createCertificationCard(entry = {}) {
+      const builder = document.getElementById("certificationsBuilder");
+      const card = document.createElement("div");
+      card.className = "entry-card";
+
+      const header = document.createElement("div");
+      header.className = "entry-card-header";
+
+      const title = document.createElement("div");
+      title.className = "entry-card-title";
+      title.textContent = "Certification Entry";
+
+      const removeEntryButton = document.createElement("button");
+      removeEntryButton.type = "button";
+      removeEntryButton.className = "remove-btn";
+      removeEntryButton.textContent = "Delete Certification";
+      removeEntryButton.addEventListener("click", () => card.remove());
+
+      header.appendChild(title);
+      header.appendChild(removeEntryButton);
+
+      const nameGroup = document.createElement("div");
+      nameGroup.className = "form-group";
+      nameGroup.innerHTML = "<label>Certification Name</label>";
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.className = "certification-name";
+      nameInput.placeholder = "e.g. CPR / First Aid";
+      nameInput.value = entry.name || "";
+      nameGroup.appendChild(nameInput);
+
+      const dateGroup = document.createElement("div");
+      dateGroup.className = "form-group";
+      dateGroup.innerHTML = "<label>Date Obtained</label>";
+      const dateInput = document.createElement("input");
+      dateInput.type = "text";
+      dateInput.className = "certification-date";
+      dateInput.placeholder = "e.g. May 2025";
+      dateInput.value = entry.date || "";
+      dateGroup.appendChild(dateInput);
+
+      const descriptionGroup = document.createElement("div");
+      descriptionGroup.className = "form-group";
+      descriptionGroup.innerHTML = "<label>Description</label>";
+      const descriptionInput = document.createElement("input");
+      descriptionInput.type = "text";
+      descriptionInput.className = "certification-description";
+      descriptionInput.placeholder = "Short note about the certification";
+      descriptionInput.value = entry.description || "";
+      descriptionGroup.appendChild(descriptionInput);
+
+      card.appendChild(header);
+      card.appendChild(nameGroup);
+      card.appendChild(dateGroup);
+      card.appendChild(descriptionGroup);
+      builder.appendChild(card);
+    }
+
     function serializeBuilder(builderId) {
       return Array.from(document.querySelectorAll(`#${builderId} .entry-card`))
         .map((card) => {
@@ -723,25 +824,40 @@
         .filter((entry) => entry.category || entry.values.length);
     }
 
+    function serializeCertificationsBuilder() {
+      return Array.from(document.querySelectorAll("#certificationsBuilder .entry-card"))
+        .map((card) => ({
+          name: card.querySelector(".certification-name").value.trim(),
+          date: card.querySelector(".certification-date").value.trim(),
+          description: card.querySelector(".certification-description").value.trim()
+        }))
+        .filter((entry) => entry.name || entry.date || entry.description);
+    }
+
     function syncStructuredFields() {
       document.getElementById("skills_entries").value = JSON.stringify(serializeSkillsBuilder());
       document.getElementById("projects_entries").value = JSON.stringify(serializeBuilder("projectsBuilder"));
       document.getElementById("experience_entries").value = JSON.stringify(serializeBuilder("experienceBuilder"));
+      document.getElementById("certifications_entries").value = JSON.stringify(serializeCertificationsBuilder());
     }
 
     document.addEventListener("DOMContentLoaded", function () {
       const skillsSeed = initialSkills.length ? initialSkills : (convertLegacySkillsToEntries(legacySkillsText).length ? convertLegacySkillsToEntries(legacySkillsText) : [{}]);
       const projectSeed = initialProjects.length ? initialProjects : (convertLegacyTextToEntry(legacyProjectsText).length ? convertLegacyTextToEntry(legacyProjectsText) : [{}]);
       const experienceSeed = initialExperience.length ? initialExperience : (convertLegacyTextToEntry(legacyExperienceText).length ? convertLegacyTextToEntry(legacyExperienceText) : [{}]);
+      const certificationsSeed = initialCertifications.length ? initialCertifications : (convertLegacyCertificationsToEntries(legacyCertificationsText).length ? convertLegacyCertificationsToEntries(legacyCertificationsText) : [{}]);
 
       skillsSeed.forEach((entry) => createSkillGroupCard(entry));
       projectSeed.forEach((entry) => createEntryCard("projectsBuilder", "Project", entry));
       experienceSeed.forEach((entry) => createEntryCard("experienceBuilder", "Experience", entry));
+      certificationsSeed.forEach((entry) => createCertificationCard(entry));
 
       document.querySelectorAll(".add-entry-btn").forEach((button) => {
         button.addEventListener("click", function () {
           if (button.dataset.builder === "skillsBuilder") {
             createSkillGroupCard({});
+          } else if (button.dataset.builder === "certificationsBuilder") {
+            createCertificationCard({});
           } else {
             createEntryCard(button.dataset.builder, button.dataset.entryLabel, {});
           }

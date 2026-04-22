@@ -152,6 +152,82 @@ def format_skills_entries(entries):
     return "\n".join(lines)
 
 
+def normalize_certification_entries(raw_value):
+    if not raw_value:
+        return []
+
+    if isinstance(raw_value, str):
+        try:
+            raw_value = json.loads(raw_value)
+        except json.JSONDecodeError:
+            return []
+
+    if not isinstance(raw_value, list):
+        return []
+
+    entries = []
+    for item in raw_value:
+        if not isinstance(item, dict):
+            continue
+
+        name = normalize_text_block(item.get("name"))
+        date = normalize_text_block(item.get("date"))
+        description = normalize_text_block(item.get("description"))
+
+        if name or date or description:
+            entries.append({
+                "name": name,
+                "date": date,
+                "description": description
+            })
+
+    return entries
+
+
+def format_certification_entries(entries):
+    sections = []
+    for entry in entries:
+        name = normalize_text_block(entry.get("name"))
+        date = normalize_text_block(entry.get("date"))
+        description = normalize_text_block(entry.get("description"))
+        header_parts = [part for part in [name, date] if part]
+        lines = []
+        if header_parts:
+            lines.append(" | ".join(header_parts))
+        if description:
+            lines.append(description)
+        if lines:
+            sections.append("\n".join(lines))
+    return "\n\n".join(sections)
+
+
+def parse_certifications_text_to_entries(text):
+    entries = []
+    current = None
+    for raw_line in normalize_text_block(text).splitlines():
+        line = raw_line.strip()
+        if not line:
+            if current:
+                entries.append(current)
+                current = None
+            continue
+
+        if current is None:
+            parts = [part.strip() for part in line.split("|")]
+            current = {
+                "name": parts[0] if parts else "",
+                "date": " | ".join(parts[1:]) if len(parts) > 1 else "",
+                "description": ""
+            }
+        else:
+            current["description"] = f"{current['description']} {line}".strip() if current.get("description") else line
+
+    if current:
+        entries.append(current)
+
+    return [entry for entry in entries if entry.get("name") or entry.get("date") or entry.get("description")]
+
+
 def parse_skills_text_to_entries(text):
     entries = []
     for raw_line in normalize_text_block(text).splitlines():
@@ -208,6 +284,7 @@ def prepare_profile_for_view(profile):
     profile["skills_entries"] = normalize_skills_entries(profile.get("skills_entries")) or parse_skills_text_to_entries(profile.get("skills", ""))
     profile["projects_entries"] = normalize_resume_entries(profile.get("projects_entries")) or parse_resume_text_to_entries(profile.get("projects", ""))
     profile["experience_entries"] = normalize_resume_entries(profile.get("experience_entries")) or parse_resume_text_to_entries(profile.get("experience", ""))
+    profile["certifications_entries"] = normalize_certification_entries(profile.get("certifications_entries")) or parse_certifications_text_to_entries(profile.get("certifications", ""))
     return profile
 
 
@@ -216,6 +293,7 @@ def prepare_resume_for_view(resume):
     resume["skills_entries"] = normalize_skills_entries(resume.get("skills_entries")) or parse_skills_text_to_entries(resume.get("skills", ""))
     resume["projects_entries"] = normalize_resume_entries(resume.get("projects_entries")) or parse_resume_text_to_entries(resume.get("projects", ""))
     resume["experience_entries"] = normalize_resume_entries(resume.get("experience_entries")) or parse_resume_text_to_entries(resume.get("experience", ""))
+    resume["certifications_entries"] = normalize_certification_entries(resume.get("certifications_entries")) or parse_certifications_text_to_entries(resume.get("certifications", ""))
     return resume
 
 
@@ -413,6 +491,7 @@ def generate_resume_preview():
     skills_entries = normalize_skills_entries(profile.get("skills_entries"))
     project_entries = normalize_resume_entries(profile.get("projects_entries"))
     experience_entries = normalize_resume_entries(profile.get("experience_entries"))
+    certifications_entries = normalize_certification_entries(profile.get("certifications_entries"))
 
     education_school = ""
     if profile.get("school"):
@@ -434,9 +513,11 @@ def generate_resume_preview():
         "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
         "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
         "experience": format_resume_entries(experience_entries) or profile.get("experience", ""),
+        "certifications": format_certification_entries(certifications_entries) or profile.get("certifications", ""),
         "skills_entries": skills_entries,
         "projects_entries": project_entries,
-        "experience_entries": experience_entries
+        "experience_entries": experience_entries,
+        "certifications_entries": certifications_entries
     }
 
     return jsonify(response)
@@ -596,9 +677,11 @@ def save_resume_version():
         "skills": request.form.get("tailored_skills"),
         "projects": request.form.get("tailored_projects"),
         "experience": request.form.get("tailored_experience"),
+        "certifications": profile.get("certifications", ""),
         "skills_entries": normalize_skills_entries(request.form.get("skills_entries")),
         "projects_entries": normalize_resume_entries(request.form.get("projects_entries")),
         "experience_entries": normalize_resume_entries(request.form.get("experience_entries")),
+        "certifications_entries": normalize_certification_entries(profile.get("certifications_entries")),
 
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
@@ -624,6 +707,7 @@ def export_resume():
     skills_entries = normalize_skills_entries(profile.get("skills_entries"))
     project_entries = normalize_resume_entries(profile.get("projects_entries"))
     experience_entries = normalize_resume_entries(profile.get("experience_entries"))
+    certifications_entries = normalize_certification_entries(profile.get("certifications_entries"))
 
     tailored_skills = request.args.get(
         "tailored_skills",
@@ -637,6 +721,7 @@ def export_resume():
         "tailored_experience",
         format_resume_entries(experience_entries) or profile.get("experience", "")
     )
+    certifications_text = format_certification_entries(certifications_entries) or profile.get("certifications", "")
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
@@ -792,6 +877,20 @@ def export_resume():
             draw_bullet_list(bullets)
             y -= 3
 
+    def draw_certification_sections(entries):
+        nonlocal y
+        for entry in entries:
+            name = normalize_text_block(entry.get("name"))
+            date = normalize_text_block(entry.get("date"))
+            description = normalize_text_block(entry.get("description"))
+            if name:
+                draw_wrapped_line(name, font_name="Times-Bold", font_size=10.5, leading=12)
+            if date:
+                draw_wrapped_line(date, font_name="Times-Italic", font_size=10, leading=12)
+            if description:
+                draw_wrapped_line(description, font_name="Times-Roman", font_size=10.3, indent=10, leading=12)
+            y -= 3
+
     p.setFont("Times-Bold", 18)
     p.drawCentredString(page_width / 2, y, profile.get("name", "Your Name"))
     y -= 20
@@ -825,6 +924,12 @@ def export_resume():
     draw_section_title("TECHNICAL SKILLS")
     draw_two_column_skills(skills_lines)
     y -= 4
+
+    if certifications_entries or certifications_text:
+        draw_section_title("CERTIFICATIONS")
+        draw_certification_sections(
+            certifications_entries if certifications_entries else parse_certifications_text_to_entries(certifications_text)
+        )
 
     draw_section_title("PROJECTS")
     draw_entry_sections(tailored_projects)
@@ -1060,6 +1165,7 @@ def save_profile():
     skills_entries = normalize_skills_entries(request.form.get("skills_entries"))
     projects_entries = normalize_resume_entries(request.form.get("projects_entries"))
     experience_entries = normalize_resume_entries(request.form.get("experience_entries"))
+    certifications_entries = normalize_certification_entries(request.form.get("certifications_entries"))
 
     profile_doc = {
         "user_id": user_id,
@@ -1082,7 +1188,8 @@ def save_profile():
         "experience": format_resume_entries(experience_entries),
         "projects_entries": projects_entries,
         "experience_entries": experience_entries,
-        "certifications": request.form.get("certifications"),
+        "certifications": format_certification_entries(certifications_entries),
+        "certifications_entries": certifications_entries,
         "updated_at": datetime.utcnow()
     }
 
