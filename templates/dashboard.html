@@ -641,7 +641,7 @@
         </div>
 
         <div class="button-row">
-          <button type="button" id="generateBtn" class="primary-btn">Generate Resume</button>
+          <button type="button" id="generateBtn" class="primary-btn">Load Saved Profile</button>
           <button type="button" id="rewriteBtn" class="secondary-btn">AI Rewrite</button>
           <button type="button" id="saveBtn" class="ghost-btn">Save Version</button>
           <button type="button" id="exportBtn" class="ghost-btn">Export PDF</button>
@@ -960,7 +960,7 @@
           data: $("#resumeForm").serialize(),
           success: function (response) {
             updatePreviewFromResponse(response);
-            showStatus("Preview generated successfully.");
+            showStatus("Saved profile loaded into the preview.");
           },
           error: function (xhr) {
             let msg = "Could not generate preview.";
