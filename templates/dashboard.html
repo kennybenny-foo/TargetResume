@@ -817,9 +817,13 @@
               {% if active_experience_entries %}
                 {% for entry in active_experience_entries %}
                   <div class="resume-entry">
-                    {% if entry.title %}<div class="resume-entry-title">{{ entry.title }}</div>{% endif %}
-                    {% set experience_details = entry.details if entry.details else ([entry.location, entry.dates] | select | join(' | ')) %}
-                    {% if experience_details %}<div class="resume-entry-details">{{ experience_details }}</div>{% endif %}
+                    {% set experience_left = [entry.title, (entry.details if entry.details else entry.location)] | select | join(', ') %}
+                    {% if experience_left or entry.dates %}
+                      <div class="resume-entry-top-row">
+                        {% if experience_left %}<div class="resume-entry-title">{{ experience_left }}</div>{% endif %}
+                        {% if entry.dates %}<div class="resume-entry-date">{{ entry.dates }}</div>{% endif %}
+                      </div>
+                    {% endif %}
                     {% if entry.bullets %}
                       <ul class="resume-bullets">
                         {% for bullet in entry.bullets %}
@@ -875,6 +879,32 @@
             : "";
 
           return `<div class="resume-entry">${title}${details}${bullets}</div>`;
+        }).join("");
+
+        $container.html(html);
+        $text.hide().text("");
+        return;
+      }
+
+      $container.html(`<div class="resume-text">${$("<div>").text(fallbackText).html()}</div>`);
+      $text.hide().text(fallbackText);
+    }
+
+    function renderExperiencePreview(entries, fallbackText) {
+      const $container = $("#previewExperienceEntries");
+      const $text = $("#previewExperienceText");
+
+      if (Array.isArray(entries) && entries.length) {
+        const html = entries.map((entry) => {
+          const leftText = [entry.title, (entry.details || entry.location || "")].filter(Boolean).join(", ");
+          const header = (leftText || entry.dates)
+            ? `<div class="resume-entry-top-row">${leftText ? `<div class="resume-entry-title">${$("<div>").text(leftText).html()}</div>` : "<div></div>"}${entry.dates ? `<div class="resume-entry-date">${$("<div>").text(entry.dates).html()}</div>` : ""}</div>`
+            : "";
+          const bullets = Array.isArray(entry.bullets) && entry.bullets.length
+            ? `<ul class="resume-bullets">${entry.bullets.map((bullet) => `<li>${$("<div>").text(bullet).html()}</li>`).join("")}</ul>`
+            : "";
+
+          return `<div class="resume-entry">${header}${bullets}</div>`;
         }).join("");
 
         $container.html(html);
@@ -1171,7 +1201,7 @@
       $("#previewCertificationsText").text(certificationsText);
 
       renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", response.projects_entries, projectsText || "Projects will appear here.");
-      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", response.experience_entries, experienceText || "Work experience will appear here.");
+      renderExperiencePreview(response.experience_entries, experienceText || "Work experience will appear here.");
       renderCertificationPreview(response.certifications_entries, certificationsText || "Certifications will appear here.");
       syncPreviewToHiddenFields();
     }
@@ -1183,7 +1213,7 @@
       renderSkillsPreview({{ ((selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else (profile.skills_entries if profile and profile.skills_entries else []))) | tojson }}, $("#previewSkillsText").text().trim() || "Technical skills will appear here.");
       renderCertificationPreview({{ ((selected_resume.certifications_entries if selected_resume and selected_resume.certifications_entries else (profile.certifications_entries if profile and profile.certifications_entries else []))) | tojson }}, $("#previewCertificationsText").text().trim() || "Certifications will appear here.");
       renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ ((selected_resume.projects_entries if selected_resume and selected_resume.projects_entries else (profile.projects_entries if profile and profile.projects_entries else []))) | tojson }}, $("#previewProjectsText").text().trim() || "Projects will appear here.");
-      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", {{ ((selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else (profile.experience_entries if profile and profile.experience_entries else []))) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
+      renderExperiencePreview({{ ((selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else (profile.experience_entries if profile and profile.experience_entries else []))) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
       syncPreviewToHiddenFields();
       initialEditorState = getCurrentEditorState();
 
