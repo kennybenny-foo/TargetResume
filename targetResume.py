@@ -11,6 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -176,6 +177,32 @@ def parse_ai_rewrite_response(parsed, profile):
         "projects_entries": project_entries,
         "experience_entries": experience_entries
     }
+
+
+def split_text_to_lines(text, font_name, font_size, max_width):
+    text = normalize_text_block(text)
+    if not text:
+        return []
+
+    lines = []
+    for paragraph in text.splitlines():
+        paragraph = paragraph.strip()
+        if not paragraph:
+            lines.append("")
+            continue
+
+        words = paragraph.split()
+        current = words[0]
+        for word in words[1:]:
+            candidate = f"{current} {word}"
+            if stringWidth(candidate, font_name, font_size) <= max_width:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        lines.append(current)
+
+    return lines
 
 
 app = Flask(__name__)
@@ -444,53 +471,153 @@ def export_resume():
         format_resume_entries(experience_entries) or profile.get("experience", "")
     )
 
-    education_top = ""
-    if profile.get("school"):
-        education_top += profile.get("school", "")
-    if profile.get("school_location"):
-        education_top += f", {profile.get('school_location')}"
-    if profile.get("expected_grad"):
-        education_top += f" Expected Graduation {profile.get('expected_grad')}"
-
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
+    page_width, page_height = letter
+    left_margin = 48
+    right_margin = 48
+    content_width = page_width - left_margin - right_margin
+    y = page_height - 42
+    bottom_margin = 52
 
-    y = 760
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(72, y, profile.get("name", "Your Name"))
+    education_school = ""
+    if profile.get("school"):
+        education_school += profile.get("school", "")
+    if profile.get("school_location"):
+        education_school += f", {profile.get('school_location')}"
+    education_grad = profile.get("expected_grad", "")
+    education_degree = profile.get("degree", "")
+
+    skills_lines = split_text_to_lines(tailored_skills.replace("\u2022", "-"), "Times-Roman", 10.5, content_width - 14)
+
+    def new_page():
+        nonlocal y
+        p.showPage()
+        y = page_height - 42
+
+    def ensure_space(required_height):
+        nonlocal y
+        if y - required_height < bottom_margin:
+            new_page()
+
+    def draw_section_title(title):
+        nonlocal y
+        ensure_space(24)
+        p.setFont("Times-Bold", 11)
+        p.drawString(left_margin, y, title)
+        y -= 6
+        p.setLineWidth(0.8)
+        p.line(left_margin, y, page_width - right_margin, y)
+        y -= 14
+
+    def draw_wrapped_line(text, font_name="Times-Roman", font_size=10.5, indent=0, leading=13):
+        nonlocal y
+        max_width = content_width - indent
+        lines = split_text_to_lines(text, font_name, font_size, max_width)
+        for line in lines:
+            ensure_space(leading)
+            p.setFont(font_name, font_size)
+            p.drawString(left_margin + indent, y, line)
+            y -= leading
+
+    def draw_bullet_list(lines):
+        nonlocal y
+        bullet_indent = 10
+        text_indent = 20
+        for bullet in lines:
+            clean_bullet = bullet.strip()
+            if not clean_bullet:
+                continue
+            if clean_bullet.startswith("- "):
+                clean_bullet = clean_bullet[2:].strip()
+
+            wrapped = split_text_to_lines(clean_bullet, "Times-Roman", 10.5, content_width - text_indent)
+            if not wrapped:
+                continue
+
+            ensure_space(13 * len(wrapped))
+            p.setFont("Times-Roman", 10.5)
+            p.drawString(left_margin + bullet_indent, y, u"\u2022")
+            p.drawString(left_margin + text_indent, y, wrapped[0])
+            y -= 13
+            for continuation in wrapped[1:]:
+                ensure_space(13)
+                p.drawString(left_margin + text_indent, y, continuation)
+                y -= 13
+
+    def parse_structured_text(text):
+        sections = []
+        current = None
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("- "):
+                if current is None:
+                    current = {"header": "", "bullets": []}
+                current["bullets"].append(line)
+            else:
+                if current:
+                    sections.append(current)
+                current = {"header": line, "bullets": []}
+        if current:
+            sections.append(current)
+        return sections
+
+    def draw_entry_sections(section_text):
+        nonlocal y
+        for entry in parse_structured_text(section_text):
+            header = entry["header"]
+            bullets = entry["bullets"]
+            if header:
+                header_parts = [part.strip() for part in header.split("|")]
+                title = header_parts[0] if header_parts else ""
+                details = " | ".join(header_parts[1:]) if len(header_parts) > 1 else ""
+                draw_wrapped_line(title, font_name="Times-Bold", font_size=10.5, leading=12)
+                if details:
+                    draw_wrapped_line(details, font_name="Times-Italic", font_size=10, leading=12)
+            draw_bullet_list(bullets)
+            y -= 3
+
+    p.setFont("Times-Bold", 18)
+    p.drawString(left_margin, y, profile.get("name", "Your Name"))
     y -= 20
 
-    p.setFont("Helvetica", 10)
     contact = " | ".join(filter(None, [
         profile.get("email"),
         profile.get("phone"),
         profile.get("linkedin"),
         profile.get("portfolio")
     ]))
-    p.drawString(72, y, contact)
-    y -= 30
+    if contact:
+        for line in split_text_to_lines(contact, "Times-Roman", 10.5, content_width):
+            p.setFont("Times-Roman", 10.5)
+            p.drawString(left_margin, y, line)
+            y -= 13
+    y -= 8
 
-    sections = [
-        ("EDUCATION", education_top + ("\n" + profile.get("degree", "") if profile.get("degree") else "")),
-        ("TECHNICAL SKILLS", tailored_skills),
-        ("PROJECTS", tailored_projects),
-        ("WORK EXPERIENCE", tailored_experience)
-    ]
+    draw_section_title("EDUCATION")
+    ensure_space(28)
+    p.setFont("Times-Italic", 10.5)
+    p.drawString(left_margin, y, education_school)
+    if education_grad:
+        grad_text = f"Graduation {education_grad}"
+        p.drawRightString(page_width - right_margin, y, grad_text)
+    y -= 13
+    if education_degree:
+        p.setFont("Times-Roman", 10.5)
+        p.drawString(left_margin + 12, y, education_degree)
+        y -= 16
 
-    for title, content in sections:
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(72, y, title)
-        y -= 18
+    draw_section_title("TECHNICAL SKILLS")
+    draw_bullet_list(skills_lines)
+    y -= 4
 
-        p.setFont("Helvetica", 10)
-        for line in content.split("\n"):
-            if y < 72:
-                p.showPage()
-                y = 760
-            p.drawString(72, y, line[:100])
-            y -= 14
+    draw_section_title("PROJECTS")
+    draw_entry_sections(tailored_projects)
 
-        y -= 10
+    draw_section_title("WORK EXPERIENCE")
+    draw_entry_sections(tailored_experience)
 
     p.save()
     buffer.seek(0)
