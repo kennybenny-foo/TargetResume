@@ -743,11 +743,11 @@ def export_resume():
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     page_width, page_height = letter
-    left_margin = 18
-    right_margin = 18
+    left_margin = 36
+    right_margin = 36
     content_width = page_width - left_margin - right_margin
-    y = page_height - 18
-    bottom_margin = 18
+    y = page_height - 36
+    bottom_margin = 36
 
     education_school = ""
     if profile.get("school"):
