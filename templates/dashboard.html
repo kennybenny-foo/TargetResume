@@ -802,6 +802,71 @@
       $("#statusMessage").stop(true, true).hide().text(message).fadeIn(150);
     }
 
+    function extractSkillsTextFromPreview() {
+      const items = [];
+      $("#previewSkillsEntries .skills-list li").each(function () {
+        const category = $(this).find(".skills-category").text().replace(/:\s*$/, "").trim();
+        const fullText = $(this).text().trim();
+        if (!fullText) {
+          return;
+        }
+
+        if (category) {
+          const values = fullText.replace(`${category}:`, "").trim();
+          items.push(`- ${category}: ${values}`);
+        } else {
+          items.push(`- ${fullText}`);
+        }
+      });
+
+      if (items.length) {
+        return items.join("\n");
+      }
+
+      return $("#previewSkillsText").text().trim();
+    }
+
+    function extractEntryTextFromPreview(containerSelector, textSelector) {
+      const entries = [];
+
+      $(`${containerSelector} .resume-entry`).each(function () {
+        const title = $(this).find(".resume-entry-title").first().text().trim();
+        const details = $(this).find(".resume-entry-details").first().text().trim();
+        const bullets = [];
+
+        $(this).find(".resume-bullets li").each(function () {
+          const bullet = $(this).text().trim();
+          if (bullet) {
+            bullets.push(`- ${bullet}`);
+          }
+        });
+
+        const headerParts = [];
+        if (title) {
+          headerParts.push(title);
+        }
+        if (details) {
+          headerParts.push(details);
+        }
+        if (headerParts.length) {
+          entries.push(headerParts.join(" | "));
+        }
+        if (bullets.length) {
+          entries.push(...bullets);
+        }
+        if (headerParts.length || bullets.length) {
+          entries.push("");
+        }
+      });
+
+      const normalized = entries.join("\n").trim();
+      if (normalized) {
+        return normalized;
+      }
+
+      return $(textSelector).text().trim();
+    }
+
     function setRewriteLoadingState(isLoading) {
       const $button = $("#rewriteBtn");
 
@@ -819,9 +884,9 @@
     }
 
     function syncPreviewToHiddenFields() {
-      $("#savedSkills").val($("#previewSkillsText").text().trim());
-      $("#savedProjects").val($("#previewProjectsText").text().trim());
-      $("#savedExperience").val($("#previewExperienceText").text().trim());
+      $("#savedSkills").val(extractSkillsTextFromPreview());
+      $("#savedProjects").val(extractEntryTextFromPreview("#previewProjectsEntries", "#previewProjectsText"));
+      $("#savedExperience").val(extractEntryTextFromPreview("#previewExperienceEntries", "#previewExperienceText"));
     }
 
     function updatePreviewFromResponse(response) {
