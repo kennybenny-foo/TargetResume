@@ -148,6 +148,14 @@ def format_skills_entries(entries):
     return "\n".join(lines)
 
 
+def prepare_profile_for_view(profile):
+    profile = profile or {}
+    profile["skills_entries"] = normalize_skills_entries(profile.get("skills_entries"))
+    profile["projects_entries"] = normalize_resume_entries(profile.get("projects_entries"))
+    profile["experience_entries"] = normalize_resume_entries(profile.get("experience_entries"))
+    return profile
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key")
 
@@ -181,7 +189,7 @@ def dashboard():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
-    profile = profiles_collection.find_one({"user_id": user_id})
+    profile = prepare_profile_for_view(profiles_collection.find_one({"user_id": user_id}))
 
     return render_template("dashboard.html", profile=profile)
 
@@ -510,7 +518,7 @@ def profile():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
-    profile_data = profiles_collection.find_one({"user_id": user_id})
+    profile_data = prepare_profile_for_view(profiles_collection.find_one({"user_id": user_id}))
 
     return render_template("profile.html", profile=profile_data)
 

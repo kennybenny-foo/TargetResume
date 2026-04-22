@@ -744,22 +744,24 @@
           type: "POST",
           data: $("#resumeForm").serialize(),
           success: function (response) {
-          function safeText(value) {
-            if (typeof value === "string") {
-              return value;
+            function safeText(value) {
+              if (typeof value === "string") {
+                return value;
+              }
+              return JSON.stringify(value, null, 2);
             }
-            return JSON.stringify(value, null, 2);
-          }
 
-          if (response.skills) {
-            $("#previewSkills").text(safeText(response.skills));
-          }
-          if (response.projects) {
-            $("#previewProjects").text(safeText(response.projects));
-          }
-          if (response.experience) {
-            $("#previewExperience").text(safeText(response.experience));
-          }
+            const normalizedResponse = {
+              ...response,
+              skills: safeText(response.skills || ""),
+              projects: safeText(response.projects || ""),
+              experience: safeText(response.experience || ""),
+              skills_entries: [],
+              projects_entries: [],
+              experience_entries: []
+            };
+
+            updatePreviewFromResponse(normalizedResponse);
             syncPreviewToHiddenFields();
             showStatus("AI rewrite applied to the preview.");
           },
