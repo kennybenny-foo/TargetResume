@@ -602,11 +602,11 @@ Return exactly this JSON format:
     }}
   ],
   "certifications_entries": [
-    {
+    {{
       "name": "Certification name",
       "date": "optional date obtained",
       "description": "optional short description"
-    }
+    }}
   ],
   "experience_entries": [
     {{
