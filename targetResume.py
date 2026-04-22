@@ -743,11 +743,11 @@ def export_resume():
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     page_width, page_height = letter
-    left_margin = 48
-    right_margin = 48
+    left_margin = 18
+    right_margin = 18
     content_width = page_width - left_margin - right_margin
-    y = page_height - 42
-    bottom_margin = 52
+    y = page_height - 18
+    bottom_margin = 18
 
     education_school = ""
     if profile.get("school"):
@@ -900,10 +900,15 @@ def export_resume():
             name = normalize_text_block(entry.get("name"))
             date = normalize_text_block(entry.get("date"))
             description = normalize_text_block(entry.get("description"))
-            if name:
-                draw_wrapped_line(name, font_name="Times-Bold", font_size=10.5, leading=12)
-            if date:
-                draw_wrapped_line(date, font_name="Times-Italic", font_size=10, leading=12)
+            if name or date:
+                ensure_space(12)
+                p.setFont("Times-Bold", 10.5)
+                if name:
+                    p.drawString(left_margin, y, name)
+                if date:
+                    p.setFont("Times-Italic", 10)
+                    p.drawRightString(page_width - right_margin, y, date)
+                y -= 12
             if description:
                 draw_wrapped_line(description, font_name="Times-Roman", font_size=10.3, indent=10, leading=12)
             y -= 3
