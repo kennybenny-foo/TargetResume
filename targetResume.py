@@ -894,6 +894,47 @@ def export_resume():
             draw_bullet_list(bullets)
             y -= 3
 
+    def draw_experience_sections(section_text):
+        nonlocal y
+        for entry in parse_structured_text(section_text):
+            header = entry["header"]
+            bullets = entry["bullets"]
+
+            if header:
+                header_parts = [part.strip() for part in header.split("|") if part.strip()]
+                left_text = ""
+                right_text = ""
+
+                if header_parts:
+                    if len(header_parts) == 1:
+                        left_text = header_parts[0]
+                    else:
+                        left_text = ", ".join(header_parts[:-1])
+                        right_text = header_parts[-1]
+
+                font_name = "Times-Italic"
+                font_size = 9.8
+                right_width = stringWidth(right_text, font_name, font_size) if right_text else 0
+                left_width = content_width - right_width - 18 if right_text else content_width
+                left_lines = split_text_to_lines(left_text, font_name, font_size, left_width) if left_text else []
+                line_count = max(len(left_lines), 1)
+                ensure_space(line_count * 12)
+
+                p.setFont(font_name, font_size)
+                if left_lines:
+                    p.drawString(left_margin, y, left_lines[0])
+                if right_text:
+                    p.drawRightString(page_width - right_margin, y, right_text)
+                y -= 12
+
+                for continuation in left_lines[1:]:
+                    ensure_space(12)
+                    p.drawString(left_margin, y, continuation)
+                    y -= 12
+
+            draw_bullet_list(bullets)
+            y -= 3
+
     def draw_certification_sections(entries):
         nonlocal y
         for entry in entries:
@@ -957,7 +998,7 @@ def export_resume():
     draw_entry_sections(tailored_projects)
 
     draw_section_title("WORK EXPERIENCE")
-    draw_entry_sections(tailored_experience)
+    draw_experience_sections(tailored_experience)
 
     p.save()
     buffer.seek(0)
