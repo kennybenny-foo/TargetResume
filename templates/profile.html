@@ -326,6 +326,92 @@
       gap: 10px;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.34);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 300;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(100%, 460px);
+      background: linear-gradient(180deg, #ffffff 0%, #f9fcf9 100%);
+      border: 1px solid #dfe8e0;
+      border-radius: 24px;
+      box-shadow: 0 24px 52px rgba(15, 23, 42, 0.18);
+      padding: 24px;
+    }
+
+    .modal-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef5ef;
+      color: #3f5f45;
+      border: 1px solid #d9e7da;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 1.35rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .modal-message {
+      color: #475569;
+      line-height: 1.55;
+      margin-bottom: 18px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .modal-btn-secondary {
+      background: #f4f7f4;
+      color: #475569;
+      border: 1px solid #d9e3da;
+    }
+
+    .modal-btn-secondary:hover {
+      background: #eaf1eb;
+    }
+
+    .modal-btn-primary {
+      background: #5f8a66;
+      color: #ffffff;
+      box-shadow: 0 10px 20px rgba(95, 138, 102, 0.16);
+    }
+
+    .modal-btn-primary:hover {
+      background: #4d7354;
+    }
+
     @media (max-width: 1100px) {
       .top-grid, .form-grid {
         grid-template-columns: 1fr;
@@ -371,7 +457,7 @@
   </section>
 
   <main class="page-container">
-    <form action="/save-profile" method="POST">
+    <form id="profileForm" action="/save-profile" method="POST">
       <section class="top-grid">
         <div class="card">
           <h2>Profile Basics</h2>
@@ -486,6 +572,17 @@
       </section>
     </form>
   </main>
+  <div id="appModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+      <div class="modal-eyebrow" id="appModalEyebrow">Unsaved Changes</div>
+      <h2 class="modal-title" id="appModalTitle">Leave this page?</h2>
+      <p class="modal-message" id="appModalMessage"></p>
+      <div class="modal-actions">
+        <button type="button" id="appModalCancel" class="modal-btn modal-btn-secondary">Stay Here</button>
+        <button type="button" id="appModalConfirm" class="modal-btn modal-btn-primary">Leave Page</button>
+      </div>
+    </div>
+  </div>
   <script>
     const initialProjects = {{ (profile.projects_entries if profile and profile.projects_entries else []) | tojson }};
     const initialExperience = {{ (profile.experience_entries if profile and profile.experience_entries else []) | tojson }};
@@ -495,6 +592,63 @@
     const legacyProjectsText = {{ (profile.projects if profile and profile.projects else "") | tojson }};
     const legacyExperienceText = {{ (profile.experience if profile and profile.experience else "") | tojson }};
     const legacyCertificationsText = {{ (profile.certifications if profile and profile.certifications else "") | tojson }};
+    let allowNavigationWithoutWarning = false;
+    let initialProfileState = "";
+
+    function openConfirmModal(title, message) {
+      const $overlay = $("#appModal");
+      const $title = $("#appModalTitle");
+      const $message = $("#appModalMessage");
+      const $cancel = $("#appModalCancel");
+      const $confirm = $("#appModalConfirm");
+
+      $("#appModalEyebrow").text("Unsaved Changes");
+      $title.text(title);
+      $message.text(message);
+      $cancel.text("Stay Here");
+      $confirm.text("Leave Page");
+      $overlay.addClass("open").attr("aria-hidden", "false");
+
+      return new Promise((resolve) => {
+        function close(result) {
+          $overlay.removeClass("open").attr("aria-hidden", "true");
+          $confirm.off("click.modal");
+          $cancel.off("click.modal");
+          $overlay.off("click.modal");
+          $(document).off("keydown.modal");
+          resolve(result);
+        }
+
+        $confirm.on("click.modal", function () {
+          close({ confirmed: true });
+        });
+
+        $cancel.on("click.modal", function () {
+          close({ confirmed: false });
+        });
+
+        $overlay.on("click.modal", function (event) {
+          if (event.target === this) {
+            close({ confirmed: false });
+          }
+        });
+
+        $(document).on("keydown.modal", function (event) {
+          if (event.key === "Escape") {
+            close({ confirmed: false });
+          }
+        });
+
+        setTimeout(function () {
+          $cancel.trigger("focus");
+        }, 10);
+      });
+    }
+
+    function getProfileState() {
+      syncStructuredFields();
+      return JSON.stringify($("#profileForm").serializeArray());
+    }
 
     function convertLegacySkillsToEntries(text) {
       return text
@@ -900,8 +1054,47 @@
         });
       });
 
-      document.querySelector("form").addEventListener("submit", syncStructuredFields);
+      document.querySelector("#profileForm").addEventListener("submit", function () {
+        syncStructuredFields();
+        allowNavigationWithoutWarning = true;
+      });
       syncStructuredFields();
+      initialProfileState = getProfileState();
+
+      window.addEventListener("beforeunload", function (event) {
+        if (allowNavigationWithoutWarning) {
+          return;
+        }
+
+        if (getProfileState() !== initialProfileState) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+
+      $(document).on("click", "a[href]", async function (event) {
+        const href = $(this).attr("href");
+        const target = $(this).attr("target");
+
+        if (!href || href.startsWith("#") || href.startsWith("javascript:") || target === "_blank") {
+          return;
+        }
+
+        if (allowNavigationWithoutWarning || getProfileState() === initialProfileState) {
+          return;
+        }
+
+        event.preventDefault();
+        const result = await openConfirmModal(
+          "Leave this page?",
+          "You have unsaved profile changes. If you leave now, those edits may be lost."
+        );
+
+        if (result.confirmed) {
+          allowNavigationWithoutWarning = true;
+          window.location.href = href;
+        }
+      });
     });
   </script>
 </body>

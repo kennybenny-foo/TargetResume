@@ -794,6 +794,9 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
     $(document).ready(function () {
+      let allowNavigationWithoutWarning = false;
+      let initialJobFormState = "";
+
       function openModal(options) {
         const settings = Object.assign({
           eyebrow: "TargetResume",
@@ -879,6 +882,52 @@
           danger: Boolean(danger)
         });
       }
+
+      function getJobFormState() {
+        return JSON.stringify($(".job-form").serializeArray());
+      }
+
+      initialJobFormState = getJobFormState();
+
+      window.addEventListener("beforeunload", function (event) {
+        if (allowNavigationWithoutWarning) {
+          return;
+        }
+
+        if (getJobFormState() !== initialJobFormState) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+
+      $(document).on("click", "a[href]", async function (event) {
+        const href = $(this).attr("href");
+        const target = $(this).attr("target");
+
+        if (!href || href.startsWith("#") || href.startsWith("javascript:") || target === "_blank") {
+          return;
+        }
+
+        if (allowNavigationWithoutWarning || getJobFormState() === initialJobFormState) {
+          return;
+        }
+
+        event.preventDefault();
+        const result = await openConfirmModal(
+          "Leave this page?",
+          "You have an unfinished job entry. If you leave now, what you typed may be lost.",
+          false
+        );
+
+        if (result.confirmed) {
+          allowNavigationWithoutWarning = true;
+          window.location.href = href;
+        }
+      });
+
+      $(".job-form").on("submit", function () {
+        allowNavigationWithoutWarning = true;
+      });
 
       $(".delete-job-btn").on("click", async function () {
         const jobId = $(this).data("id");
