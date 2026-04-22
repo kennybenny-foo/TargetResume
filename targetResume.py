@@ -241,6 +241,7 @@ users_collection = db["users"]
 resumes_collection = db["resumes"]
 jobs_collection = db["job_tracker"]
 profiles_collection = db["profiles"]
+folders_collection = db["folders"]
 
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "5025"))
@@ -260,8 +261,16 @@ def dashboard():
 
     user_id = session["user_id"]
     profile = prepare_profile_for_view(profiles_collection.find_one({"user_id": user_id}))
+    resume_id = request.args.get("resume_id", "").strip()
+    selected_resume = None
 
-    return render_template("dashboard.html", profile=profile)
+    if resume_id:
+        selected_resume = resumes_collection.find_one({
+            "_id": ObjectId(resume_id),
+            "user_id": user_id
+        })
+
+    return render_template("dashboard.html", profile=profile, selected_resume=selected_resume)
 
 
 @app.route("/generate-resume-preview", methods=["POST"])
@@ -711,11 +720,17 @@ def resumes():
         resumes_collection.find({"user_id": user_id}).sort("updated_at", -1)
     )
 
-    folder_names = sorted({
+    resume_folder_names = {
         resume.get("folder", "Saved Drafts")
         for resume in all_resumes
         if resume.get("folder")
-    })
+    }
+    created_folder_names = {
+        folder.get("name", "").strip()
+        for folder in folders_collection.find({"user_id": user_id})
+        if folder.get("name")
+    }
+    folder_names = sorted(resume_folder_names | created_folder_names)
 
     if selected_folder == "All Resumes":
         filtered_resumes = all_resumes
@@ -731,6 +746,30 @@ def resumes():
         folder_names=folder_names,
         selected_folder=selected_folder
     )
+
+
+@app.route("/create-folder", methods=["POST"])
+def create_folder():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+    folder_name = request.form.get("folder_name", "").strip()
+
+    if not folder_name:
+        return redirect(url_for("resumes"))
+
+    folders_collection.update_one(
+        {"user_id": user_id, "name": folder_name},
+        {"$setOnInsert": {
+            "user_id": user_id,
+            "name": folder_name,
+            "created_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
+
+    return redirect(url_for("resumes", folder=folder_name))
 
 @app.route("/delete-resume/<resume_id>", methods=["POST"])
 def delete_resume(resume_id):

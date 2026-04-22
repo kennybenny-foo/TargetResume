@@ -41,6 +41,12 @@
       flex-direction: column;
     }
 
+    .brand {
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+    }
+
     .logo {
       font-family: "Poppins", sans-serif;
       font-size: 2.5rem;
@@ -151,6 +157,30 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .folder-create {
+      display: grid;
+      gap: 10px;
+    }
+
+    .folder-create input {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 12px;
+      border: 1px solid #d6e0d7;
+      font-size: 0.94rem;
+    }
+
+    .folder-create button {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: #5f8a66;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
     }
 
     .folder-item {
@@ -315,8 +345,10 @@
 <body>
   <nav class="navbar">
     <div class="nav-left">
-      <h1 class="logo">TargetResume</h1>
-      <span class="tagline">AI-Assisted Resume Builder</span>
+      <a href="/dashboard" class="brand">
+        <h1 class="logo">TargetResume</h1>
+        <span class="tagline">AI-Assisted Resume Builder</span>
+      </a>
     </div>
 
     <div class="nav-center">
@@ -346,6 +378,11 @@
           </a>
         {% endfor %}
       </div>
+
+      <form action="/create-folder" method="POST" class="folder-create">
+        <input type="text" name="folder_name" placeholder="Create new folder">
+        <button type="submit">Add Folder</button>
+      </form>
     </aside>
 
     <main class="main-content">
@@ -373,7 +410,7 @@
             </div>
 
             <div class="resume-actions">
-              <button type="button" class="open-btn">Open</button>
+              <a href="/dashboard?resume_id={{ resume._id }}" class="open-btn" style="text-decoration: none;">Open</a>
               <button type="button" class="delete-btn delete-resume-btn" data-id="{{ resume._id }}">Delete</button>
             </div>
           </div>

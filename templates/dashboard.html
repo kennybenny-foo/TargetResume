@@ -41,6 +41,12 @@
       flex-direction: column;
     }
 
+    .brand {
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+    }
+
     .logo {
       font-family: "Poppins", sans-serif;
       font-size: 2.5rem;
@@ -567,8 +573,10 @@
 
   <nav class="navbar">
     <div class="nav-left">
-      <h1 class="logo">TargetResume</h1>
-      <span class="tagline">AI-Assisted Resume Builder</span>
+      <a href="/dashboard" class="brand">
+        <h1 class="logo">TargetResume</h1>
+        <span class="tagline">AI-Assisted Resume Builder</span>
+      </a>
     </div>
 
     <div class="nav-center">
@@ -614,30 +622,30 @@
 
         <div class="form-group">
           <label for="folder">Folder</label>
-          <input type="text" id="folder" name="folder" placeholder="e.g. Internships, Frontend Roles, Saved Drafts">
+          <input type="text" id="folder" name="folder" placeholder="e.g. Internships, Frontend Roles, Saved Drafts" value="{{ selected_resume.folder if selected_resume else '' }}">
         </div>
   
         <div class="form-group">
           <label for="jobtitle">Job Title</label>
-          <input type="text" id="jobtitle" name="job_title" placeholder="e.g. Frontend Developer">
+          <input type="text" id="jobtitle" name="job_title" placeholder="e.g. Frontend Developer" value="{{ selected_resume.job_title if selected_resume else '' }}">
         </div>
 
         <div class="form-group">
           <label for="jobdescription">Job Description</label>
-          <textarea id="jobdescription" name="job_description" placeholder="Paste the job description here"></textarea>
+          <textarea id="jobdescription" name="job_description" placeholder="Paste the job description here">{{ selected_resume.job_description if selected_resume else '' }}</textarea>
         </div>
 
         <div class="section-label">Additional Notes</div>
 
         <div class="form-group">
           <label for="notes">Special Focus</label>
-          <textarea id="notes" name="notes" placeholder="Example: emphasize frontend projects, teamwork, and internship experience"></textarea>
+          <textarea id="notes" name="notes" placeholder="Example: emphasize frontend projects, teamwork, and internship experience">{{ selected_resume.notes if selected_resume else '' }}</textarea>
         </div>
 
         <div class="hidden-fields">
-          <input type="hidden" id="savedSkills" name="tailored_skills">
-          <input type="hidden" id="savedProjects" name="tailored_projects">
-          <input type="hidden" id="savedExperience" name="tailored_experience">
+          <input type="hidden" id="savedSkills" name="tailored_skills" value="{{ selected_resume.skills if selected_resume else '' }}">
+          <input type="hidden" id="savedProjects" name="tailored_projects" value="{{ selected_resume.projects if selected_resume else '' }}">
+          <input type="hidden" id="savedExperience" name="tailored_experience" value="{{ selected_resume.experience if selected_resume else '' }}">
         </div>
 
         <div class="button-row">
@@ -674,15 +682,19 @@
             <div class="resume-section-title">Education</div>
             <div class="education-block">
               <div class="education-top-row">
-                <div class="resume-text education-school" id="previewEducationTop">
-                  {% if profile %}
+            <div class="resume-text education-school" id="previewEducationTop">
+                  {% if selected_resume %}
+                    {{ selected_resume.school if selected_resume.school else "" }}{% if selected_resume.school_location %}, {{ selected_resume.school_location }}{% endif %}
+                  {% elif profile %}
                     {{ profile.school if profile.school else "" }}{% if profile.school_location %}, {{ profile.school_location }}{% endif %}
                   {% else %}
                     School, Location
                   {% endif %}
                 </div>
                 <div class="resume-text education-grad" id="previewEducationGrad">
-                  {% if profile and profile.expected_grad %}
+                  {% if selected_resume and selected_resume.expected_grad %}
+                    Graduation {{ selected_resume.expected_grad }}
+                  {% elif profile and profile.expected_grad %}
                     Graduation {{ profile.expected_grad }}
                   {% else %}
                     Graduation Year
@@ -690,7 +702,7 @@
                 </div>
               </div>
               <div class="resume-text" id="previewEducationBottom">
-                {{ profile.degree if profile and profile.degree else "Degree will appear here." }}
+                {{ selected_resume.degree if selected_resume and selected_resume.degree else (profile.degree if profile and profile.degree else "Degree will appear here.") }}
               </div>
             </div>
           </div>
@@ -698,10 +710,10 @@
           <div class="resume-section">
             <div class="resume-section-title">Technical Skills</div>
             <div class="resume-text" id="previewSkillsText" style="display: none;">
-              {{ profile.skills if profile and profile.skills else "Technical skills will appear here." }}
+              {{ selected_resume.skills if selected_resume and selected_resume.skills else (profile.skills if profile and profile.skills else "Technical skills will appear here.") }}
             </div>
             <div id="previewSkillsEntries">
-              {% if profile and profile.skills_entries %}
+              {% if profile and profile.skills_entries and not selected_resume %}
                 <ul class="skills-list">
                   {% for entry in profile.skills_entries %}
                     <li>
@@ -719,10 +731,10 @@
           <div class="resume-section">
             <div class="resume-section-title">Projects</div>
             <div class="resume-text" id="previewProjectsText" style="display: none;">
-              {{ profile.projects if profile and profile.projects else "Projects will appear here." }}
+              {{ selected_resume.projects if selected_resume and selected_resume.projects else (profile.projects if profile and profile.projects else "Projects will appear here.") }}
             </div>
             <div id="previewProjectsEntries">
-              {% if profile and profile.projects_entries %}
+              {% if profile and profile.projects_entries and not selected_resume %}
                 {% for entry in profile.projects_entries %}
                   <div class="resume-entry">
                     {% if entry.title %}<div class="resume-entry-title">{{ entry.title }}</div>{% endif %}
@@ -745,10 +757,10 @@
           <div class="resume-section">
             <div class="resume-section-title">Work Experience</div>
             <div class="resume-text" id="previewExperienceText" style="display: none;">
-              {{ profile.experience if profile and profile.experience else "Work experience will appear here." }}
+              {{ selected_resume.experience if selected_resume and selected_resume.experience else (profile.experience if profile and profile.experience else "Work experience will appear here.") }}
             </div>
             <div id="previewExperienceEntries">
-              {% if profile and profile.experience_entries %}
+              {% if profile and profile.experience_entries and not selected_resume %}
                 {% for entry in profile.experience_entries %}
                   <div class="resume-entry">
                     {% if entry.title %}<div class="resume-entry-title">{{ entry.title }}</div>{% endif %}
@@ -948,9 +960,9 @@
     }
 
     $(document).ready(function () {
-      renderSkillsPreview({{ (profile.skills_entries if profile and profile.skills_entries else []) | tojson }}, $("#previewSkillsText").text().trim() || "Technical skills will appear here.");
-      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ (profile.projects_entries if profile and profile.projects_entries else []) | tojson }}, $("#previewProjectsText").text().trim() || "Projects will appear here.");
-      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", {{ (profile.experience_entries if profile and profile.experience_entries else []) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
+      renderSkillsPreview({{ ([] if selected_resume else (profile.skills_entries if profile and profile.skills_entries else [])) | tojson }}, $("#previewSkillsText").text().trim() || "Technical skills will appear here.");
+      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ ([] if selected_resume else (profile.projects_entries if profile and profile.projects_entries else [])) | tojson }}, $("#previewProjectsText").text().trim() || "Projects will appear here.");
+      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", {{ ([] if selected_resume else (profile.experience_entries if profile and profile.experience_entries else [])) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
       syncPreviewToHiddenFields();
 
       $("#generateBtn").on("click", function () {
