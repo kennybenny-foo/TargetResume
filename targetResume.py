@@ -415,6 +415,21 @@ def parse_ai_rewrite_response(parsed, profile):
             if len(project_entries) >= 3:
                 break
 
+    project_entries = [
+        {
+            **entry,
+            "bullets": parse_bullets(entry.get("bullets"))[:4]
+        }
+        for entry in project_entries[:4]
+    ]
+    experience_entries = [
+        {
+            **entry,
+            "bullets": parse_bullets(entry.get("bullets"))[:4]
+        }
+        for entry in experience_entries
+    ]
+
     return {
         "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
         "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
@@ -592,6 +607,9 @@ You are helping tailor a resume for a specific job.
 
 Use ONLY the user's provided information.
 Do NOT invent employers, projects, dates, degrees, metrics, or skills.
+Do NOT add tools, technologies, certifications, coursework, or achievements that are not explicitly present in the user's profile.
+Do NOT rewrite facts into stronger-sounding facts if that changes meaning.
+Keep organization names, role names, dates, and locations accurate to the user's input.
 Do NOT create a professional summary.
 Rewrite only these sections:
 skills
@@ -603,10 +621,15 @@ The output must fit a strong one-page student resume.
 Select only the strongest and most relevant details for this specific target job.
 Do not include everything if that would make the resume too long.
 Prefer concise, high-impact bullets.
+Prefer stronger existing bullets over rewriting them into vague filler.
+Avoid repeating the same accomplishment across multiple projects or jobs.
+If a section is weak for this target job, return fewer stronger entries rather than forcing extra filler.
 Return at least 3 projects when the user has 3 or more available.
 Order projects from strongest and most relevant first to weakest and least relevant last.
 Keep 2-4 bullets per project or experience entry.
 If an entry has 4 strong relevant bullets, keep all 4 instead of shortening it unnecessarily.
+Only include certifications that are genuinely relevant or meaningfully strengthen the application.
+If the user has fewer than 3 projects total, return only the real projects they actually have.
 
 IMPORTANT:
 Return valid JSON.
@@ -686,6 +709,37 @@ Certifications: {json.dumps(profile.get("certifications_entries") or profile.get
         return jsonify({"error": str(e)}), 500
 
 
+def build_resume_document(user_id, profile, form_data):
+    job_title = form_data.get("job_title", "").strip()
+    folder = form_data.get("folder", "").strip() or "Saved Drafts"
+
+    return {
+        "user_id": user_id,
+        "title": job_title if job_title else "Untitled Resume",
+        "folder": folder,
+        "job_title": job_title,
+        "job_description": form_data.get("job_description"),
+        "notes": form_data.get("notes"),
+        "name": profile.get("name", ""),
+        "email": profile.get("email", ""),
+        "phone": profile.get("phone", ""),
+        "linkedin": profile.get("linkedin", ""),
+        "portfolio": profile.get("portfolio", ""),
+        "school": profile.get("school", ""),
+        "school_location": profile.get("school_location", ""),
+        "expected_grad": profile.get("expected_grad", ""),
+        "degree": profile.get("degree", ""),
+        "skills": form_data.get("tailored_skills"),
+        "projects": form_data.get("tailored_projects"),
+        "experience": form_data.get("tailored_experience"),
+        "certifications": form_data.get("tailored_certifications"),
+        "skills_entries": normalize_skills_entries(form_data.get("skills_entries")),
+        "projects_entries": normalize_resume_entries(form_data.get("projects_entries")),
+        "experience_entries": normalize_resume_entries(form_data.get("experience_entries")),
+        "certifications_entries": normalize_certification_entries(form_data.get("certifications_entries"))
+    }
+
+
 @app.route("/save-resume-version", methods=["POST"])
 def save_resume_version():
     if "user_id" not in session:
@@ -693,49 +747,49 @@ def save_resume_version():
 
     user_id = session["user_id"]
     profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    resume_doc = build_resume_document(user_id, profile, request.form)
+    resume_doc["created_at"] = datetime.utcnow()
+    resume_doc["updated_at"] = datetime.utcnow()
 
-    job_title = request.form.get("job_title", "").strip()
-    folder = request.form.get("folder", "").strip() or "Saved Drafts"
-
-    resume_doc = {
-        "user_id": user_id,
-        "title": job_title if job_title else "Untitled Resume",
-        "folder": folder,
-        "job_title": job_title,
-        "job_description": request.form.get("job_description"),
-        "notes": request.form.get("notes"),
-
-        "name": profile.get("name", ""),
-        "email": profile.get("email", ""),
-        "phone": profile.get("phone", ""),
-        "linkedin": profile.get("linkedin", ""),
-        "portfolio": profile.get("portfolio", ""),
-
-        "school": profile.get("school", ""),
-        "school_location": profile.get("school_location", ""),
-        "expected_grad": profile.get("expected_grad", ""),
-        "degree": profile.get("degree", ""),
-
-        "skills": request.form.get("tailored_skills"),
-        "projects": request.form.get("tailored_projects"),
-        "experience": request.form.get("tailored_experience"),
-        "certifications": request.form.get("tailored_certifications"),
-        "skills_entries": normalize_skills_entries(request.form.get("skills_entries")),
-        "projects_entries": normalize_resume_entries(request.form.get("projects_entries")),
-        "experience_entries": normalize_resume_entries(request.form.get("experience_entries")),
-        "certifications_entries": normalize_certification_entries(request.form.get("certifications_entries")),
-
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
-    }
-
-    ensure_folder_record(user_id, folder)
+    ensure_folder_record(user_id, resume_doc["folder"])
 
     result = resumes_collection.insert_one(resume_doc)
 
     return jsonify({
         "success": True,
         "resume_id": str(result.inserted_id)
+    })
+
+
+@app.route("/update-resume-version/<resume_id>", methods=["POST"])
+def update_resume_version(resume_id):
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    existing_resume = resumes_collection.find_one({
+        "_id": ObjectId(resume_id),
+        "user_id": user_id
+    })
+
+    if not existing_resume:
+        return jsonify({"success": False, "error": "Resume not found."}), 404
+
+    profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    updated_resume = build_resume_document(user_id, profile, request.form)
+    updated_resume["title"] = existing_resume.get("title") or updated_resume["title"]
+    updated_resume["updated_at"] = datetime.utcnow()
+
+    ensure_folder_record(user_id, updated_resume["folder"])
+
+    resumes_collection.update_one(
+        {"_id": existing_resume["_id"], "user_id": user_id},
+        {"$set": updated_resume}
+    )
+
+    return jsonify({
+        "success": True,
+        "resume_id": str(existing_resume["_id"])
     })
 
 
@@ -1232,6 +1286,35 @@ def move_resume(resume_id):
 
     if result.matched_count == 1:
         return jsonify({"success": True, "folder": target_folder})
+
+    return jsonify({"success": False, "error": "Resume not found"}), 404
+
+
+@app.route("/rename-resume/<resume_id>", methods=["POST"])
+def rename_resume(resume_id):
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    new_title = request.form.get("title", "").strip()
+    if not new_title:
+        return jsonify({"success": False, "error": "Resume title is required."}), 400
+
+    user_id = session["user_id"]
+    result = resumes_collection.update_one(
+        {
+            "_id": ObjectId(resume_id),
+            "user_id": user_id
+        },
+        {
+            "$set": {
+                "title": new_title,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    if result.matched_count == 1:
+        return jsonify({"success": True, "title": new_title})
 
     return jsonify({"success": False, "error": "Resume not found"}), 404
 

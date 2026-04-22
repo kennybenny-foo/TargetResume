@@ -558,6 +558,7 @@
 
             <div class="resume-actions">
               <a href="/dashboard?resume_id={{ resume._id }}" class="open-btn" style="text-decoration: none;">Open</a>
+              <button type="button" class="move-btn rename-resume-btn" data-id="{{ resume._id }}" data-title="{{ resume.title }}">Rename</button>
               <button type="button" class="move-btn duplicate-resume-btn" data-id="{{ resume._id }}">Duplicate</button>
               <button type="button" class="delete-btn delete-resume-btn" data-id="{{ resume._id }}">Delete</button>
             </div>
@@ -657,12 +658,46 @@
         });
       });
 
+      $(".rename-resume-btn").on("click", function () {
+        const resumeId = $(this).data("id");
+        const currentTitle = $(this).data("title");
+        const newTitle = prompt("Rename saved resume to:", currentTitle);
+
+        if (!newTitle || !newTitle.trim() || newTitle.trim() === currentTitle) {
+          return;
+        }
+
+        const $button = $(this);
+        $button.prop("disabled", true).text("Renaming...");
+
+        $.ajax({
+          url: "/rename-resume/" + resumeId,
+          type: "POST",
+          data: { title: newTitle.trim() },
+          success: function (response) {
+            if (response.success) {
+              location.reload();
+            } else {
+              alert("Could not rename resume.");
+            }
+          },
+          error: function (xhr) {
+            const message = xhr.responseJSON && xhr.responseJSON.error
+              ? xhr.responseJSON.error
+              : "Something went wrong while renaming the resume.";
+            alert(message);
+          },
+          complete: function () {
+            $button.prop("disabled", false).text("Rename");
+          }
+        });
+      });
+
       $(".move-resume-btn").on("click", function () {
         const resumeId = $(this).data("id");
         const $card = $("#resume-" + resumeId);
         const $select = $card.find(".move-select");
         const targetFolder = $select.val();
-        const $label = $card.find(".resume-label");
         const $folderMeta = $card.find(".resume-meta div").first();
         const $button = $(this);
 
@@ -674,7 +709,6 @@
           data: { folder: targetFolder },
           success: function (response) {
             if (response.success) {
-              $label.text(response.folder);
               $folderMeta.html("<strong>Folder:</strong> " + response.folder);
 
               if ("{{ selected_folder }}" !== "All Resumes" && "{{ selected_folder }}" !== response.folder) {

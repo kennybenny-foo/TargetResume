@@ -664,6 +664,7 @@
         </div>
 
         <div class="hidden-fields">
+          <input type="hidden" id="resumeId" name="resume_id" value="{{ selected_resume._id if selected_resume else '' }}">
           <input type="hidden" id="savedSkills" name="tailored_skills" value="{{ selected_resume.skills if selected_resume else '' }}">
           <input type="hidden" id="savedProjects" name="tailored_projects" value="{{ selected_resume.projects if selected_resume else '' }}">
           <input type="hidden" id="savedExperience" name="tailored_experience" value="{{ selected_resume.experience if selected_resume else '' }}">
@@ -677,6 +678,9 @@
         <div class="button-row">
           <button type="button" id="generateBtn" class="primary-btn">Load Saved Profile</button>
           <button type="button" id="rewriteBtn" class="secondary-btn">AI Rewrite</button>
+          {% if selected_resume %}
+          <button type="button" id="updateBtn" class="ghost-btn">Update This Version</button>
+          {% endif %}
           <button type="button" id="saveBtn" class="ghost-btn">Save Version</button>
           <button type="button" id="exportBtn" class="ghost-btn">Export PDF</button>
         </div>
@@ -1309,6 +1313,38 @@
         }
       });
     });
+
+      $("#updateBtn").on("click", function () {
+        const resumeId = $("#resumeId").val();
+
+        if (!resumeId) {
+          showStatus("No saved resume is currently open.");
+          return;
+        }
+
+        syncPreviewToHiddenFields();
+
+        $.ajax({
+          url: "/update-resume-version/" + resumeId,
+          type: "POST",
+          data: $("#resumeForm").serialize(),
+          success: function (response) {
+            if (response.success) {
+              initialEditorState = getCurrentEditorState();
+              showStatus("Saved resume updated.");
+            } else {
+              showStatus("Could not update this saved version.");
+            }
+          },
+          error: function (xhr) {
+            let msg = "Could not update this saved version.";
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+              msg = xhr.responseJSON.error;
+            }
+            showStatus(msg);
+          }
+        });
+      });
 
       $("#exportBtn").on("click", function () {
         syncPreviewToHiddenFields();
