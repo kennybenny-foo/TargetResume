@@ -704,7 +704,7 @@
             </div>
           </div>
 
-          <div class="resume-section">
+          <div class="resume-section" id="educationSection">
             <div class="resume-section-title">Education</div>
             <div class="education-block">
               <div class="education-top-row">
@@ -713,8 +713,6 @@
                     {{ selected_resume.school if selected_resume.school else "" }}{% if selected_resume.school_location %}, {{ selected_resume.school_location }}{% endif %}
                   {% elif profile %}
                     {{ profile.school if profile.school else "" }}{% if profile.school_location %}, {{ profile.school_location }}{% endif %}
-                  {% else %}
-                    School, Location
                   {% endif %}
                 </div>
                 <div class="resume-text education-grad" id="previewEducationGrad">
@@ -722,21 +720,19 @@
                     Graduation {{ selected_resume.expected_grad }}
                   {% elif profile and profile.expected_grad %}
                     Graduation {{ profile.expected_grad }}
-                  {% else %}
-                    Graduation Year
                   {% endif %}
                 </div>
               </div>
               <div class="resume-text" id="previewEducationBottom">
-                {{ selected_resume.degree if selected_resume and selected_resume.degree else (profile.degree if profile and profile.degree else "Degree will appear here.") }}
+                {{ selected_resume.degree if selected_resume and selected_resume.degree else (profile.degree if profile and profile.degree else "") }}
               </div>
             </div>
           </div>
 
-          <div class="resume-section">
+          <div class="resume-section" id="skillsSection">
             <div class="resume-section-title">Technical Skills</div>
             <div class="resume-text" id="previewSkillsText" style="display: none;">
-              {{ selected_resume.skills if selected_resume and selected_resume.skills else (profile.skills if profile and profile.skills else "Technical skills will appear here.") }}
+              {{ selected_resume.skills if selected_resume and selected_resume.skills else (profile.skills if profile and profile.skills else "") }}
             </div>
             <div id="previewSkillsEntries">
               {% set active_skills_entries = selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else (profile.skills_entries if profile and profile.skills_entries else []) %}
@@ -749,16 +745,14 @@
                     </li>
                   {% endfor %}
                 </ul>
-              {% else %}
-                <div class="resume-text">Technical skills will appear here.</div>
               {% endif %}
             </div>
           </div>
 
-          <div class="resume-section">
+          <div class="resume-section" id="certificationsSection">
             <div class="resume-section-title">Certifications</div>
             <div class="resume-text" id="previewCertificationsText" style="display: none;">
-              {{ selected_resume.certifications if selected_resume and selected_resume.certifications else (profile.certifications if profile and profile.certifications else "Certifications will appear here.") }}
+              {{ selected_resume.certifications if selected_resume and selected_resume.certifications else (profile.certifications if profile and profile.certifications else "") }}
             </div>
             <div id="previewCertificationsEntries">
               {% set active_certifications_entries = selected_resume.certifications_entries if selected_resume and selected_resume.certifications_entries else (profile.certifications_entries if profile and profile.certifications_entries else []) %}
@@ -774,16 +768,14 @@
                     {% if entry.description %}<div class="resume-text">{{ entry.description }}</div>{% endif %}
                   </div>
                 {% endfor %}
-              {% else %}
-                <div class="resume-text">Certifications will appear here.</div>
               {% endif %}
             </div>
           </div>
 
-          <div class="resume-section">
+          <div class="resume-section" id="projectsSection">
             <div class="resume-section-title">Projects</div>
             <div class="resume-text" id="previewProjectsText" style="display: none;">
-              {{ selected_resume.projects if selected_resume and selected_resume.projects else (profile.projects if profile and profile.projects else "Projects will appear here.") }}
+              {{ selected_resume.projects if selected_resume and selected_resume.projects else (profile.projects if profile and profile.projects else "") }}
             </div>
             <div id="previewProjectsEntries">
               {% set active_projects_entries = selected_resume.projects_entries if selected_resume and selected_resume.projects_entries else (profile.projects_entries if profile and profile.projects_entries else []) %}
@@ -801,16 +793,14 @@
                     {% endif %}
                   </div>
                 {% endfor %}
-              {% else %}
-                <div class="resume-text">Projects will appear here.</div>
               {% endif %}
             </div>
           </div>
 
-          <div class="resume-section">
+          <div class="resume-section" id="experienceSection">
             <div class="resume-section-title">Work Experience</div>
             <div class="resume-text" id="previewExperienceText" style="display: none;">
-              {{ selected_resume.experience if selected_resume and selected_resume.experience else (profile.experience if profile and profile.experience else "Work experience will appear here.") }}
+              {{ selected_resume.experience if selected_resume and selected_resume.experience else (profile.experience if profile and profile.experience else "") }}
             </div>
             <div id="previewExperienceEntries">
               {% set active_experience_entries = selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else (profile.experience_entries if profile and profile.experience_entries else []) %}
@@ -833,8 +823,6 @@
                     {% endif %}
                   </div>
                 {% endfor %}
-              {% else %}
-                <div class="resume-text">Work experience will appear here.</div>
               {% endif %}
             </div>
           </div>
@@ -845,6 +833,19 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
+    function toggleSection(sectionSelector, shouldShow) {
+      $(sectionSelector).toggle(Boolean(shouldShow));
+    }
+
+    function refreshEducationVisibility() {
+      const hasContent = [
+        $("#previewEducationTop").text().trim(),
+        $("#previewEducationGrad").text().trim(),
+        $("#previewEducationBottom").text().trim()
+      ].some(Boolean);
+      toggleSection("#educationSection", hasContent);
+    }
+
     function renderSkillsPreview(entries, fallbackText) {
       const $container = $("#previewSkillsEntries");
       const $text = $("#previewSkillsText");
@@ -858,11 +859,13 @@
 
         $container.html(html);
         $text.hide().text("");
+        toggleSection("#skillsSection", true);
         return;
       }
 
-      $container.html(`<div class="resume-text">${$("<div>").text(fallbackText).html()}</div>`);
-      $text.hide().text(fallbackText);
+      $container.empty();
+      $text.hide().text(fallbackText || "");
+      toggleSection("#skillsSection", Boolean((fallbackText || "").trim()));
     }
 
     function renderEntryPreview(containerSelector, textSelector, entries, fallbackText) {
@@ -883,11 +886,13 @@
 
         $container.html(html);
         $text.hide().text("");
+        toggleSection(containerSelector === "#previewProjectsEntries" ? "#projectsSection" : "#experienceSection", true);
         return;
       }
 
-      $container.html(`<div class="resume-text">${$("<div>").text(fallbackText).html()}</div>`);
-      $text.hide().text(fallbackText);
+      $container.empty();
+      $text.hide().text(fallbackText || "");
+      toggleSection(containerSelector === "#previewProjectsEntries" ? "#projectsSection" : "#experienceSection", Boolean((fallbackText || "").trim()));
     }
 
     function renderExperiencePreview(entries, fallbackText) {
@@ -909,11 +914,13 @@
 
         $container.html(html);
         $text.hide().text("");
+        toggleSection("#experienceSection", true);
         return;
       }
 
-      $container.html(`<div class="resume-text">${$("<div>").text(fallbackText).html()}</div>`);
-      $text.hide().text(fallbackText);
+      $container.empty();
+      $text.hide().text(fallbackText || "");
+      toggleSection("#experienceSection", Boolean((fallbackText || "").trim()));
     }
 
     function renderCertificationPreview(entries, fallbackText) {
@@ -931,11 +938,13 @@
 
         $container.html(html);
         $text.hide().text("");
+        toggleSection("#certificationsSection", true);
         return;
       }
 
-      $container.html(`<div class="resume-text">${$("<div>").text(fallbackText).html()}</div>`);
-      $text.hide().text(fallbackText);
+      $container.empty();
+      $text.hide().text(fallbackText || "");
+      toggleSection("#certificationsSection", Boolean((fallbackText || "").trim()));
     }
 
     function showStatus(message) {
@@ -1178,12 +1187,13 @@
       if (Object.prototype.hasOwnProperty.call(response, "education_bottom")) {
         $("#previewEducationBottom").text(response.education_bottom || "");
       }
+      refreshEducationVisibility();
 
       const skillsText = Object.prototype.hasOwnProperty.call(response, "skills")
         ? (response.skills || "")
         : $("#previewSkillsText").text().trim();
       $("#previewSkillsText").text(skillsText);
-      renderSkillsPreview(response.skills_entries, skillsText || "Technical skills will appear here.");
+      renderSkillsPreview(response.skills_entries, skillsText || "");
 
       const projectsText = Object.prototype.hasOwnProperty.call(response, "projects")
         ? (response.projects || "")
@@ -1200,9 +1210,9 @@
         : $("#previewCertificationsText").text().trim();
       $("#previewCertificationsText").text(certificationsText);
 
-      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", response.projects_entries, projectsText || "Projects will appear here.");
-      renderExperiencePreview(response.experience_entries, experienceText || "Work experience will appear here.");
-      renderCertificationPreview(response.certifications_entries, certificationsText || "Certifications will appear here.");
+      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", response.projects_entries, projectsText || "");
+      renderExperiencePreview(response.experience_entries, experienceText || "");
+      renderCertificationPreview(response.certifications_entries, certificationsText || "");
       syncPreviewToHiddenFields();
     }
 
@@ -1210,10 +1220,11 @@
       let initialEditorState = "";
       let allowNavigationWithoutWarning = false;
 
-      renderSkillsPreview({{ ((selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else (profile.skills_entries if profile and profile.skills_entries else []))) | tojson }}, $("#previewSkillsText").text().trim() || "Technical skills will appear here.");
-      renderCertificationPreview({{ ((selected_resume.certifications_entries if selected_resume and selected_resume.certifications_entries else (profile.certifications_entries if profile and profile.certifications_entries else []))) | tojson }}, $("#previewCertificationsText").text().trim() || "Certifications will appear here.");
-      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ ((selected_resume.projects_entries if selected_resume and selected_resume.projects_entries else (profile.projects_entries if profile and profile.projects_entries else []))) | tojson }}, $("#previewProjectsText").text().trim() || "Projects will appear here.");
-      renderExperiencePreview({{ ((selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else (profile.experience_entries if profile and profile.experience_entries else []))) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
+      refreshEducationVisibility();
+      renderSkillsPreview({{ ((selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else (profile.skills_entries if profile and profile.skills_entries else []))) | tojson }}, $("#previewSkillsText").text().trim() || "");
+      renderCertificationPreview({{ ((selected_resume.certifications_entries if selected_resume and selected_resume.certifications_entries else (profile.certifications_entries if profile and profile.certifications_entries else []))) | tojson }}, $("#previewCertificationsText").text().trim() || "");
+      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ ((selected_resume.projects_entries if selected_resume and selected_resume.projects_entries else (profile.projects_entries if profile and profile.projects_entries else []))) | tojson }}, $("#previewProjectsText").text().trim() || "");
+      renderExperiencePreview({{ ((selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else (profile.experience_entries if profile and profile.experience_entries else []))) | tojson }}, $("#previewExperienceText").text().trim() || "");
       syncPreviewToHiddenFields();
       initialEditorState = getCurrentEditorState();
 

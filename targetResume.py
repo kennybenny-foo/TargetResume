@@ -1035,22 +1035,25 @@ def export_resume():
             y -= 13
     y -= 8
 
-    draw_section_title("EDUCATION")
-    ensure_space(28)
-    p.setFont("Times-Italic", 10.5)
-    p.drawString(left_margin, y, education_school)
-    if education_grad:
-        grad_text = f"Graduation {education_grad}"
-        p.drawRightString(page_width - right_margin, y, grad_text)
-    y -= 13
-    if education_degree:
-        p.setFont("Times-Roman", 10.5)
-        p.drawString(left_margin + 12, y, education_degree)
-        y -= 16
+    if education_school or education_grad or education_degree:
+        draw_section_title("EDUCATION")
+        ensure_space(28)
+        p.setFont("Times-Italic", 10.5)
+        if education_school:
+            p.drawString(left_margin, y, education_school)
+        if education_grad:
+            grad_text = f"Graduation {education_grad}"
+            p.drawRightString(page_width - right_margin, y, grad_text)
+        y -= 13
+        if education_degree:
+            p.setFont("Times-Roman", 10.5)
+            p.drawString(left_margin + 12, y, education_degree)
+            y -= 16
 
-    draw_section_title("TECHNICAL SKILLS")
-    draw_two_column_skills(skills_lines)
-    y -= 4
+    if skills_lines:
+        draw_section_title("TECHNICAL SKILLS")
+        draw_two_column_skills(skills_lines)
+        y -= 4
 
     if certifications_entries or certifications_text:
         draw_section_title("CERTIFICATIONS")
@@ -1058,11 +1061,13 @@ def export_resume():
             certifications_entries if certifications_entries else parse_certifications_text_to_entries(certifications_text)
         )
 
-    draw_section_title("PROJECTS")
-    draw_entry_sections(tailored_projects)
+    if normalize_text_block(tailored_projects):
+        draw_section_title("PROJECTS")
+        draw_entry_sections(tailored_projects)
 
-    draw_section_title("WORK EXPERIENCE")
-    draw_experience_sections(tailored_experience)
+    if normalize_text_block(tailored_experience):
+        draw_section_title("WORK EXPERIENCE")
+        draw_experience_sections(tailored_experience)
 
     p.save()
     buffer.seek(0)
