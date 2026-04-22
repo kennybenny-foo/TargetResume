@@ -161,13 +161,34 @@ def parse_ai_rewrite_response(parsed, profile):
     skills_entries = normalize_skills_entries(parsed.get("skills_entries"))
     project_entries = normalize_resume_entries(parsed.get("projects_entries"))
     experience_entries = normalize_resume_entries(parsed.get("experience_entries"))
+    fallback_projects = normalize_resume_entries(profile.get("projects_entries"))
 
     if not skills_entries:
         skills_entries = normalize_skills_entries(profile.get("skills_entries"))
     if not project_entries:
-        project_entries = normalize_resume_entries(profile.get("projects_entries"))
+        project_entries = fallback_projects
     if not experience_entries:
         experience_entries = normalize_resume_entries(profile.get("experience_entries"))
+
+    if len(project_entries) < 3 and fallback_projects:
+        seen = {
+            (
+                normalize_text_block(entry.get("title")),
+                normalize_text_block(entry.get("details"))
+            )
+            for entry in project_entries
+        }
+        for fallback_entry in fallback_projects:
+            key = (
+                normalize_text_block(fallback_entry.get("title")),
+                normalize_text_block(fallback_entry.get("details"))
+            )
+            if key in seen:
+                continue
+            project_entries.append(fallback_entry)
+            seen.add(key)
+            if len(project_entries) >= 3:
+                break
 
     return {
         "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
@@ -328,8 +349,10 @@ The output must fit a strong one-page student resume.
 Select only the strongest and most relevant details for this specific target job.
 Do not include everything if that would make the resume too long.
 Prefer concise, high-impact bullets.
-Keep 1-3 strong projects and 1-3 strong experience entries when possible.
+Return at least 3 projects when the user has 3 or more available.
+Order projects from strongest and most relevant first to weakest and least relevant last.
 Keep 2-4 bullets per project or experience entry.
+If an entry has 4 strong relevant bullets, keep all 4 instead of shortening it unnecessarily.
 
 IMPORTANT:
 Return valid JSON.
@@ -545,6 +568,50 @@ def export_resume():
                 p.drawString(left_margin + text_indent, y, continuation)
                 y -= 13
 
+    def draw_two_column_skills(lines):
+        nonlocal y
+        cleaned_lines = []
+        for line in lines:
+            clean = line.strip()
+            if not clean:
+                continue
+            if clean.startswith("- "):
+                clean = clean[2:].strip()
+            cleaned_lines.append(clean)
+
+        if not cleaned_lines:
+            return
+
+        column_gap = 22
+        column_width = (content_width - column_gap) / 2
+        left_lines = cleaned_lines[::2]
+        right_lines = cleaned_lines[1::2]
+        row_count = max(len(left_lines), len(right_lines))
+
+        for row_index in range(row_count):
+            left_text = left_lines[row_index] if row_index < len(left_lines) else ""
+            right_text = right_lines[row_index] if row_index < len(right_lines) else ""
+
+            left_wrapped = split_text_to_lines(left_text, "Times-Roman", 10.2, column_width - 14) if left_text else []
+            right_wrapped = split_text_to_lines(right_text, "Times-Roman", 10.2, column_width - 14) if right_text else []
+            row_height = max(len(left_wrapped), len(right_wrapped), 1) * 12
+            ensure_space(row_height)
+
+            for index, line in enumerate(left_wrapped):
+                current_y = y - (index * 12)
+                if index == 0:
+                    p.drawString(left_margin, current_y, u"\u2022")
+                p.drawString(left_margin + 10, current_y, line)
+
+            right_x = left_margin + column_width + column_gap
+            for index, line in enumerate(right_wrapped):
+                current_y = y - (index * 12)
+                if index == 0:
+                    p.drawString(right_x, current_y, u"\u2022")
+                p.drawString(right_x + 10, current_y, line)
+
+            y -= row_height
+
     def parse_structured_text(text):
         sections = []
         current = None
@@ -610,7 +677,7 @@ def export_resume():
         y -= 16
 
     draw_section_title("TECHNICAL SKILLS")
-    draw_bullet_list(skills_lines)
+    draw_two_column_skills(skills_lines)
     y -= 4
 
     draw_section_title("PROJECTS")
