@@ -427,6 +427,24 @@
       white-space: normal;
     }
 
+    .education-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 18px;
+    }
+
+    .education-school {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .education-grad {
+      white-space: nowrap;
+      text-align: right;
+      font-size: 0.88rem;
+    }
+
     .paper::before {
       content: "";
       display: block;
@@ -600,12 +618,21 @@
           <div class="resume-section">
             <div class="resume-section-title">Education</div>
             <div class="education-block">
-              <div class="resume-text" id="previewEducationTop">
-                {% if profile %}
-                  {{ profile.school if profile.school else "" }}{% if profile.school_location %}, {{ profile.school_location }}{% endif %}{% if profile.expected_grad %} Expected Graduation {{ profile.expected_grad }}{% endif %}
-                {% else %}
-                  School, Location Expected Graduation Year
-                {% endif %}
+              <div class="education-top-row">
+                <div class="resume-text education-school" id="previewEducationTop">
+                  {% if profile %}
+                    {{ profile.school if profile.school else "" }}{% if profile.school_location %}, {{ profile.school_location }}{% endif %}
+                  {% else %}
+                    School, Location
+                  {% endif %}
+                </div>
+                <div class="resume-text education-grad" id="previewEducationGrad">
+                  {% if profile and profile.expected_grad %}
+                    Graduation {{ profile.expected_grad }}
+                  {% else %}
+                    Graduation Year
+                  {% endif %}
+                </div>
               </div>
               <div class="resume-text" id="previewEducationBottom">
                 {{ profile.degree if profile and profile.degree else "Degree will appear here." }}
@@ -750,6 +777,7 @@
       $("#previewName").text(response.name || "Your Name");
       $("#previewContact").text(response.contact || "Email | Phone | LinkedIn | Portfolio");
       $("#previewEducationTop").text(response.education_top || "");
+      $("#previewEducationGrad").text(response.education_grad ? `Graduation ${response.education_grad}` : "");
       $("#previewEducationBottom").text(response.education_bottom || "");
       $("#previewSkillsText").text(response.skills || "");
       renderSkillsPreview(response.skills_entries, response.skills || "Technical skills will appear here.");

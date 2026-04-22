@@ -205,13 +205,11 @@ def generate_resume_preview():
     project_entries = normalize_resume_entries(profile.get("projects_entries"))
     experience_entries = normalize_resume_entries(profile.get("experience_entries"))
 
-    education_top = ""
+    education_school = ""
     if profile.get("school"):
-        education_top += profile.get("school", "")
+        education_school += profile.get("school", "")
     if profile.get("school_location"):
-        education_top += f", {profile.get('school_location')}"
-    if profile.get("expected_grad"):
-        education_top += f" Expected Graduation {profile.get('expected_grad')}"
+        education_school += f", {profile.get('school_location')}"
 
     response = {
         "name": profile.get("name", "Your Name"),
@@ -221,7 +219,8 @@ def generate_resume_preview():
             profile.get("linkedin"),
             profile.get("portfolio")
         ])) or "Email | Phone | LinkedIn | Portfolio",
-        "education_top": education_top,
+        "education_top": education_school,
+        "education_grad": profile.get("expected_grad", ""),
         "education_bottom": profile.get("degree", ""),
         "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
         "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
