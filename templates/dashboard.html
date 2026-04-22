@@ -667,9 +667,11 @@
           <input type="hidden" id="savedSkills" name="tailored_skills" value="{{ selected_resume.skills if selected_resume else '' }}">
           <input type="hidden" id="savedProjects" name="tailored_projects" value="{{ selected_resume.projects if selected_resume else '' }}">
           <input type="hidden" id="savedExperience" name="tailored_experience" value="{{ selected_resume.experience if selected_resume else '' }}">
+          <input type="hidden" id="savedCertifications" name="tailored_certifications" value="{{ selected_resume.certifications if selected_resume else '' }}">
           <input type="hidden" id="savedSkillsEntries" name="skills_entries" value='{{ (selected_resume.skills_entries if selected_resume and selected_resume.skills_entries else []) | tojson | safe }}'>
           <input type="hidden" id="savedProjectsEntries" name="projects_entries" value='{{ (selected_resume.projects_entries if selected_resume and selected_resume.projects_entries else []) | tojson | safe }}'>
           <input type="hidden" id="savedExperienceEntries" name="experience_entries" value='{{ (selected_resume.experience_entries if selected_resume and selected_resume.experience_entries else []) | tojson | safe }}'>
+          <input type="hidden" id="savedCertificationsEntries" name="certifications_entries" value='{{ (selected_resume.certifications_entries if selected_resume and selected_resume.certifications_entries else []) | tojson | safe }}'>
         </div>
 
         <div class="button-row">
@@ -1045,13 +1047,69 @@
       }
     }
 
+    function extractCertificationsTextFromPreview() {
+      const entries = [];
+
+      $("#previewCertificationsEntries .resume-entry").each(function () {
+        const name = $(this).find(".resume-entry-title").first().text().trim();
+        const date = $(this).find(".resume-entry-date").first().text().trim();
+        const description = $(this).find(".resume-text").first().text().trim();
+
+        const headerParts = [];
+        if (name) {
+          headerParts.push(name);
+        }
+        if (date) {
+          headerParts.push(date);
+        }
+        if (headerParts.length) {
+          entries.push(headerParts.join(" | "));
+        }
+        if (description) {
+          entries.push(description);
+        }
+        if (headerParts.length || description) {
+          entries.push("");
+        }
+      });
+
+      const normalized = entries.join("\n").trim();
+      if (normalized) {
+        return normalized;
+      }
+
+      return $("#previewCertificationsText").text().trim();
+    }
+
+    function extractCertificationsEntriesFromPreview() {
+      const entries = [];
+
+      $("#previewCertificationsEntries .resume-entry").each(function () {
+        const name = $(this).find(".resume-entry-title").first().text().trim();
+        const date = $(this).find(".resume-entry-date").first().text().trim();
+        const description = $(this).find(".resume-text").first().text().trim();
+
+        if (name || date || description) {
+          entries.push({
+            name: name,
+            date: date,
+            description: description
+          });
+        }
+      });
+
+      return entries;
+    }
+
     function syncPreviewToHiddenFields() {
       $("#savedSkills").val(extractSkillsTextFromPreview());
       $("#savedProjects").val(extractEntryTextFromPreview("#previewProjectsEntries", "#previewProjectsText"));
       $("#savedExperience").val(extractEntryTextFromPreview("#previewExperienceEntries", "#previewExperienceText"));
+      $("#savedCertifications").val(extractCertificationsTextFromPreview());
       $("#savedSkillsEntries").val(JSON.stringify(extractSkillsEntriesFromPreview()));
       $("#savedProjectsEntries").val(JSON.stringify(extractEntriesFromPreview("#previewProjectsEntries")));
       $("#savedExperienceEntries").val(JSON.stringify(extractEntriesFromPreview("#previewExperienceEntries")));
+      $("#savedCertificationsEntries").val(JSON.stringify(extractCertificationsEntriesFromPreview()));
     }
 
     function getCurrentEditorState() {
@@ -1064,9 +1122,11 @@
         savedSkills: $("#savedSkills").val(),
         savedProjects: $("#savedProjects").val(),
         savedExperience: $("#savedExperience").val(),
+        savedCertifications: $("#savedCertifications").val(),
         savedSkillsEntries: $("#savedSkillsEntries").val(),
         savedProjectsEntries: $("#savedProjectsEntries").val(),
-        savedExperienceEntries: $("#savedExperienceEntries").val()
+        savedExperienceEntries: $("#savedExperienceEntries").val(),
+        savedCertificationsEntries: $("#savedCertificationsEntries").val()
       });
     }
 
@@ -1215,7 +1275,8 @@
           job_title: $("#jobtitle").val(),
           tailored_skills: $("#savedSkills").val(),
           tailored_projects: $("#savedProjects").val(),
-          tailored_experience: $("#savedExperience").val()
+          tailored_experience: $("#savedExperience").val(),
+          tailored_certifications: $("#savedCertifications").val()
         });
 
         window.location.href = "/export-resume?" + params;

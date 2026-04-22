@@ -368,6 +368,7 @@ def parse_ai_rewrite_response(parsed, profile):
     skills_entries = normalize_skills_entries(parsed.get("skills_entries"))
     project_entries = normalize_resume_entries(parsed.get("projects_entries"))
     experience_entries = normalize_resume_entries(parsed.get("experience_entries"))
+    certifications_entries = normalize_certification_entries(parsed.get("certifications_entries"))
     fallback_projects = normalize_resume_entries(profile.get("projects_entries"))
 
     if not skills_entries:
@@ -376,6 +377,8 @@ def parse_ai_rewrite_response(parsed, profile):
         project_entries = fallback_projects
     if not experience_entries:
         experience_entries = normalize_resume_entries(profile.get("experience_entries"))
+    if not certifications_entries:
+        certifications_entries = normalize_certification_entries(profile.get("certifications_entries"))
 
     if len(project_entries) < 3 and fallback_projects:
         seen = {
@@ -401,9 +404,11 @@ def parse_ai_rewrite_response(parsed, profile):
         "skills": format_skills_entries(skills_entries) or profile.get("skills", ""),
         "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
         "experience": format_resume_entries(experience_entries) or profile.get("experience", ""),
+        "certifications": format_certification_entries(certifications_entries) or profile.get("certifications", ""),
         "skills_entries": skills_entries,
         "projects_entries": project_entries,
-        "experience_entries": experience_entries
+        "experience_entries": experience_entries,
+        "certifications_entries": certifications_entries
     }
 
 
@@ -562,6 +567,7 @@ Do NOT invent employers, projects, dates, degrees, metrics, or skills.
 Do NOT create a professional summary.
 Rewrite only these sections:
 skills
+certifications
 projects
 experience
 
@@ -595,6 +601,13 @@ Return exactly this JSON format:
       ]
     }}
   ],
+  "certifications_entries": [
+    {
+      "name": "Certification name",
+      "date": "optional date obtained",
+      "description": "optional short description"
+    }
+  ],
   "experience_entries": [
     {{
       "title": "Role or organization",
@@ -609,6 +622,7 @@ Return exactly this JSON format:
 
 Do not return any keys other than:
 skills_entries
+certifications_entries
 projects_entries
 experience_entries
 
@@ -627,7 +641,7 @@ Education: {education_text}
 Skills: {json.dumps(source_skills, ensure_ascii=True)}
 Projects: {json.dumps(source_projects, ensure_ascii=True)}
 Experience: {json.dumps(source_experience, ensure_ascii=True)}
-Certifications: {profile.get("certifications", "")}
+Certifications: {json.dumps(profile.get("certifications_entries") or profile.get("certifications", ""), ensure_ascii=True)}
 """
 
     try:
@@ -677,11 +691,11 @@ def save_resume_version():
         "skills": request.form.get("tailored_skills"),
         "projects": request.form.get("tailored_projects"),
         "experience": request.form.get("tailored_experience"),
-        "certifications": profile.get("certifications", ""),
+        "certifications": request.form.get("tailored_certifications"),
         "skills_entries": normalize_skills_entries(request.form.get("skills_entries")),
         "projects_entries": normalize_resume_entries(request.form.get("projects_entries")),
         "experience_entries": normalize_resume_entries(request.form.get("experience_entries")),
-        "certifications_entries": normalize_certification_entries(profile.get("certifications_entries")),
+        "certifications_entries": normalize_certification_entries(request.form.get("certifications_entries")),
 
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
@@ -721,7 +735,10 @@ def export_resume():
         "tailored_experience",
         format_resume_entries(experience_entries) or profile.get("experience", "")
     )
-    certifications_text = format_certification_entries(certifications_entries) or profile.get("certifications", "")
+    certifications_text = request.args.get(
+        "tailored_certifications",
+        format_certification_entries(certifications_entries) or profile.get("certifications", "")
+    )
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
