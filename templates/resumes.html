@@ -232,20 +232,22 @@
     }
 
     .folder-menu-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: 999px;
-      border: 1px solid #d9e3da;
-      background: #ffffff;
+      border: none;
+      background: transparent;
       color: #5f6f63;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 1.1rem;
       line-height: 1;
+      padding: 2px 4px;
     }
 
     .folder-menu-btn:hover {
-      background: #f3f7f3;
       color: #3f5f45;
+    }
+
+    .folder-menu-btn:focus {
+      outline: none;
+      box-shadow: none;
     }
 
     .folder-menu {
@@ -497,7 +499,7 @@
               </a>
               {% if folder.can_manage %}
                 <div class="folder-menu-wrap">
-                  <button type="button" class="folder-menu-btn" data-folder="{{ folder.name }}" aria-label="Folder options">...</button>
+                  <button type="button" class="folder-menu-btn" data-folder="{{ folder.name }}" aria-label="Folder options">&#8942;</button>
                   <div class="folder-menu" data-folder-menu="{{ folder.name }}">
                     <button type="button" class="folder-action-btn" data-action="move_up" data-folder="{{ folder.name }}">Move Up</button>
                     <button type="button" class="folder-action-btn" data-action="move_down" data-folder="{{ folder.name }}">Move Down</button>
