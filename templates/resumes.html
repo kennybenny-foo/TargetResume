@@ -249,17 +249,6 @@
       box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
     }
 
-    .resume-label {
-      display: inline-block;
-      padding: 7px 11px;
-      border-radius: 999px;
-      background: #eef5ef;
-      color: #3f5f45;
-      font-size: 0.82rem;
-      font-weight: 700;
-      border: 1px solid #d9e7da;
-    }
-
     .resume-card h3 {
       font-size: 1.15rem;
       margin-bottom: 8px;
@@ -440,7 +429,6 @@
           {% for resume in resumes %}
           <div class="resume-card" id="resume-{{ resume._id }}">
             <div class="resume-card-top">
-              <span class="resume-label">{{ resume.folder if resume.folder else "Saved Drafts" }}</span>
               <div class="resume-folder-controls">
                 <span class="folder-inline-label">Folder:</span>
                 <select class="move-select" data-id="{{ resume._id }}">
