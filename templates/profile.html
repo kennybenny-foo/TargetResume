@@ -245,6 +245,77 @@
       line-height: 1.5;
     }
 
+    .entry-builder {
+      display: grid;
+      gap: 16px;
+    }
+
+    .entry-card {
+      border: 1px solid #e2ebe3;
+      border-radius: 18px;
+      padding: 18px;
+      background: #fbfcfb;
+    }
+
+    .entry-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .entry-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .bullet-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .inline-btn,
+    .remove-btn {
+      border: 1px solid #d6e0d7;
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: #ffffff;
+      color: #415044;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .inline-btn:hover,
+    .remove-btn:hover {
+      background: #edf3ee;
+    }
+
+    .add-entry-btn {
+      width: fit-content;
+      border: 1px dashed #adc4b1;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: #f7fbf8;
+      color: #3f5f45;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .helper-text {
+      color: #64748b;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .hidden-json {
+      display: none;
+    }
+
     @media (max-width: 1100px) {
       .top-grid, .form-grid {
         grid-template-columns: 1fr;
@@ -373,13 +444,19 @@
         </div>
 
         <div class="form-group">
-          <label for="projects">Projects</label>
-          <textarea id="projects" name="projects">{{ profile.projects if profile else '' }}</textarea>
+          <label>Projects</label>
+          <p class="helper-text">Add each project separately, then add the bullet points you want to appear in the resume preview.</p>
+          <div id="projectsBuilder" class="entry-builder"></div>
+          <button type="button" class="add-entry-btn" data-builder="projectsBuilder" data-entry-label="Project">+ Add Project</button>
+          <input type="hidden" id="projects_entries" name="projects_entries" class="hidden-json">
         </div>
 
         <div class="form-group">
-          <label for="experience">Work Experience</label>
-          <textarea id="experience" name="experience">{{ profile.experience if profile else '' }}</textarea>
+          <label>Work Experience</label>
+          <p class="helper-text">Create one card per role or experience, then list each accomplishment as its own bullet.</p>
+          <div id="experienceBuilder" class="entry-builder"></div>
+          <button type="button" class="add-entry-btn" data-builder="experienceBuilder" data-entry-label="Experience">+ Add Experience</button>
+          <input type="hidden" id="experience_entries" name="experience_entries" class="hidden-json">
         </div>
 
         <div class="form-group">
@@ -393,5 +470,149 @@
       </section>
     </form>
   </main>
+  <script>
+    const initialProjects = {{ (profile.projects_entries if profile and profile.projects_entries else []) | tojson }};
+    const initialExperience = {{ (profile.experience_entries if profile and profile.experience_entries else []) | tojson }};
+    const legacyProjectsText = {{ (profile.projects if profile and profile.projects else "") | tojson }};
+    const legacyExperienceText = {{ (profile.experience if profile and profile.experience else "") | tojson }};
+
+    function convertLegacyTextToEntry(text) {
+      const bullets = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => line.replace(/^[-*]\s*/, ""));
+
+      return bullets.length ? [{ title: "", details: "", bullets }] : [];
+    }
+
+    function createBulletRow(value = "") {
+      const row = document.createElement("div");
+      row.className = "bullet-row";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "bullet-input";
+      input.placeholder = "Resume bullet point";
+      input.value = value;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "remove-btn";
+      removeButton.textContent = "Remove";
+      removeButton.addEventListener("click", () => row.remove());
+
+      row.appendChild(input);
+      row.appendChild(removeButton);
+      return row;
+    }
+
+    function createEntryCard(builderId, entryLabel, entry = {}) {
+      const builder = document.getElementById(builderId);
+      const card = document.createElement("div");
+      card.className = "entry-card";
+
+      const header = document.createElement("div");
+      header.className = "entry-card-header";
+
+      const title = document.createElement("div");
+      title.className = "entry-card-title";
+      title.textContent = `${entryLabel} Entry`;
+
+      const removeEntryButton = document.createElement("button");
+      removeEntryButton.type = "button";
+      removeEntryButton.className = "remove-btn";
+      removeEntryButton.textContent = `Delete ${entryLabel}`;
+      removeEntryButton.addEventListener("click", () => card.remove());
+
+      header.appendChild(title);
+      header.appendChild(removeEntryButton);
+
+      const titleGroup = document.createElement("div");
+      titleGroup.className = "form-group";
+      titleGroup.innerHTML = `<label>${entryLabel} Name</label>`;
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.className = "entry-title";
+      titleInput.placeholder = entryLabel === "Project" ? "e.g. TargetResume Web App" : "e.g. Software Engineering Intern";
+      titleInput.value = entry.title || "";
+      titleGroup.appendChild(titleInput);
+
+      const detailsGroup = document.createElement("div");
+      detailsGroup.className = "form-group";
+      detailsGroup.innerHTML = `<label>${entryLabel} Details</label>`;
+      const detailsInput = document.createElement("input");
+      detailsInput.type = "text";
+      detailsInput.className = "entry-details";
+      detailsInput.placeholder = entryLabel === "Project" ? "e.g. Flask, MongoDB, OpenAI API" : "e.g. Company | City, State | Dates";
+      detailsInput.value = entry.details || "";
+      detailsGroup.appendChild(detailsInput);
+
+      const bulletsWrap = document.createElement("div");
+      bulletsWrap.className = "form-group";
+      bulletsWrap.innerHTML = "<label>Bullet Points</label>";
+
+      const bulletsContainer = document.createElement("div");
+      bulletsContainer.className = "bullets-container";
+
+      const bullets = Array.isArray(entry.bullets) && entry.bullets.length ? entry.bullets : [""];
+      bullets.forEach((bullet) => bulletsContainer.appendChild(createBulletRow(bullet)));
+
+      const addBulletButton = document.createElement("button");
+      addBulletButton.type = "button";
+      addBulletButton.className = "inline-btn";
+      addBulletButton.textContent = "+ Add Bullet";
+      addBulletButton.addEventListener("click", () => {
+        bulletsContainer.appendChild(createBulletRow(""));
+      });
+
+      bulletsWrap.appendChild(bulletsContainer);
+      bulletsWrap.appendChild(addBulletButton);
+
+      card.appendChild(header);
+      card.appendChild(titleGroup);
+      card.appendChild(detailsGroup);
+      card.appendChild(bulletsWrap);
+      builder.appendChild(card);
+    }
+
+    function serializeBuilder(builderId) {
+      return Array.from(document.querySelectorAll(`#${builderId} .entry-card`))
+        .map((card) => {
+          const bullets = Array.from(card.querySelectorAll(".bullet-input"))
+            .map((input) => input.value.trim())
+            .filter(Boolean);
+
+          return {
+            title: card.querySelector(".entry-title").value.trim(),
+            details: card.querySelector(".entry-details").value.trim(),
+            bullets
+          };
+        })
+        .filter((entry) => entry.title || entry.details || entry.bullets.length);
+    }
+
+    function syncStructuredFields() {
+      document.getElementById("projects_entries").value = JSON.stringify(serializeBuilder("projectsBuilder"));
+      document.getElementById("experience_entries").value = JSON.stringify(serializeBuilder("experienceBuilder"));
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const projectSeed = initialProjects.length ? initialProjects : (convertLegacyTextToEntry(legacyProjectsText).length ? convertLegacyTextToEntry(legacyProjectsText) : [{}]);
+      const experienceSeed = initialExperience.length ? initialExperience : (convertLegacyTextToEntry(legacyExperienceText).length ? convertLegacyTextToEntry(legacyExperienceText) : [{}]);
+
+      projectSeed.forEach((entry) => createEntryCard("projectsBuilder", "Project", entry));
+      experienceSeed.forEach((entry) => createEntryCard("experienceBuilder", "Experience", entry));
+
+      document.querySelectorAll(".add-entry-btn").forEach((button) => {
+        button.addEventListener("click", function () {
+          createEntryCard(button.dataset.builder, button.dataset.entryLabel, {});
+        });
+      });
+
+      document.querySelector("form").addEventListener("submit", syncStructuredFields);
+      syncStructuredFields();
+    });
+  </script>
 </body>
 </html>

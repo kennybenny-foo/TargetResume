@@ -23,6 +23,82 @@ def get_required_env(name):
     return value
 
 
+def normalize_text_block(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def parse_bullets(raw_value):
+    if raw_value is None:
+        return []
+    if isinstance(raw_value, list):
+        values = raw_value
+    else:
+        values = str(raw_value).splitlines()
+
+    bullets = []
+    for value in values:
+        cleaned = str(value).strip()
+        if not cleaned:
+            continue
+        if cleaned.startswith(("- ", "* ")):
+            cleaned = cleaned[2:].strip()
+        bullets.append(cleaned)
+    return bullets
+
+
+def normalize_resume_entries(raw_value):
+    if not raw_value:
+        return []
+
+    if isinstance(raw_value, str):
+        try:
+            raw_value = json.loads(raw_value)
+        except json.JSONDecodeError:
+            return []
+
+    if not isinstance(raw_value, list):
+        return []
+
+    entries = []
+    for item in raw_value:
+        if not isinstance(item, dict):
+            continue
+
+        title = normalize_text_block(item.get("title"))
+        details = normalize_text_block(item.get("details"))
+        bullets = parse_bullets(item.get("bullets"))
+
+        if title or details or bullets:
+            entries.append({
+                "title": title,
+                "details": details,
+                "bullets": bullets
+            })
+
+    return entries
+
+
+def format_resume_entries(entries):
+    sections = []
+    for entry in entries:
+        title = normalize_text_block(entry.get("title"))
+        details = normalize_text_block(entry.get("details"))
+        bullets = parse_bullets(entry.get("bullets"))
+
+        header_parts = [part for part in [title, details] if part]
+        lines = []
+        if header_parts:
+            lines.append(" | ".join(header_parts))
+        lines.extend(f"- {bullet}" for bullet in bullets)
+
+        if lines:
+            sections.append("\n".join(lines))
+
+    return "\n\n".join(sections)
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key")
 
@@ -38,6 +114,9 @@ users_collection = db["users"]
 resumes_collection = db["resumes"]
 jobs_collection = db["job_tracker"]
 profiles_collection = db["profiles"]
+
+HOST = os.environ.get("HOST", "0.0.0.0")
+PORT = int(os.environ.get("PORT", "5025"))
 
 
 @app.route("/")
@@ -65,6 +144,8 @@ def generate_resume_preview():
 
     user_id = session["user_id"]
     profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    project_entries = normalize_resume_entries(profile.get("projects_entries"))
+    experience_entries = normalize_resume_entries(profile.get("experience_entries"))
 
     education_top = ""
     if profile.get("school"):
@@ -85,8 +166,10 @@ def generate_resume_preview():
         "education_top": education_top,
         "education_bottom": profile.get("degree", ""),
         "skills": profile.get("skills", ""),
-        "projects": profile.get("projects", ""),
-        "experience": profile.get("experience", "")
+        "projects": format_resume_entries(project_entries) or profile.get("projects", ""),
+        "experience": format_resume_entries(experience_entries) or profile.get("experience", ""),
+        "projects_entries": project_entries,
+        "experience_entries": experience_entries
     }
 
     return jsonify(response)
@@ -98,8 +181,8 @@ def ai_rewrite_preview():
 
     if not openai_client:
         return jsonify({"error": "OPENAI_API_KEY is not set."}), 500
-    
-        user_id = session["user_id"]
+
+    user_id = session["user_id"]
     profile = profiles_collection.find_one({"user_id": user_id}) or {}
 
     job_title = request.form.get("job_title", "").strip()
@@ -244,10 +327,18 @@ def export_resume():
 
     user_id = session["user_id"]
     profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    project_entries = normalize_resume_entries(profile.get("projects_entries"))
+    experience_entries = normalize_resume_entries(profile.get("experience_entries"))
 
     tailored_skills = request.args.get("tailored_skills", profile.get("skills", ""))
-    tailored_projects = request.args.get("tailored_projects", profile.get("projects", ""))
-    tailored_experience = request.args.get("tailored_experience", profile.get("experience", ""))
+    tailored_projects = request.args.get(
+        "tailored_projects",
+        format_resume_entries(project_entries) or profile.get("projects", "")
+    )
+    tailored_experience = request.args.get(
+        "tailored_experience",
+        format_resume_entries(experience_entries) or profile.get("experience", "")
+    )
 
     education_top = ""
     if profile.get("school"):
@@ -375,6 +466,8 @@ def save_profile():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+    projects_entries = normalize_resume_entries(request.form.get("projects_entries"))
+    experience_entries = normalize_resume_entries(request.form.get("experience_entries"))
 
     profile_doc = {
         "user_id": user_id,
@@ -392,8 +485,10 @@ def save_profile():
         "degree": request.form.get("degree"),
 
         "skills": request.form.get("skills"),
-        "projects": request.form.get("projects"),
-        "experience": request.form.get("experience"),
+        "projects": format_resume_entries(projects_entries),
+        "experience": format_resume_entries(experience_entries),
+        "projects_entries": projects_entries,
+        "experience_entries": experience_entries,
         "certifications": request.form.get("certifications"),
         "updated_at": datetime.utcnow()
     }
@@ -527,4 +622,4 @@ def delete_job(job_id):
     return jsonify({"success": False}), 404
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5025)
+    app.run(host=HOST, port=PORT)

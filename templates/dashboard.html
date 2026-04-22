@@ -345,6 +345,37 @@
       white-space: pre-wrap;
     }
 
+    .resume-entry {
+      margin-bottom: 14px;
+    }
+
+    .resume-entry:last-child {
+      margin-bottom: 0;
+    }
+
+    .resume-entry-title {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .resume-entry-details {
+      color: #475569;
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+    }
+
+    .resume-bullets {
+      margin: 0;
+      padding-left: 20px;
+      color: #1e293b;
+      line-height: 1.55;
+    }
+
+    .resume-bullets li {
+      margin-bottom: 5px;
+    }
+
     .profile-status {
       margin-bottom: 20px;
       padding: 14px 16px;
@@ -528,15 +559,53 @@
 
           <div class="resume-section">
             <div class="resume-section-title">Projects</div>
-            <div class="resume-text" id="previewProjects">
+            <div class="resume-text" id="previewProjectsText" style="display: none;">
               {{ profile.projects if profile and profile.projects else "Projects will appear here." }}
+            </div>
+            <div id="previewProjectsEntries">
+              {% if profile and profile.projects_entries %}
+                {% for entry in profile.projects_entries %}
+                  <div class="resume-entry">
+                    {% if entry.title %}<div class="resume-entry-title">{{ entry.title }}</div>{% endif %}
+                    {% if entry.details %}<div class="resume-entry-details">{{ entry.details }}</div>{% endif %}
+                    {% if entry.bullets %}
+                      <ul class="resume-bullets">
+                        {% for bullet in entry.bullets %}
+                          <li>{{ bullet }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="resume-text">Projects will appear here.</div>
+              {% endif %}
             </div>
           </div>
 
           <div class="resume-section">
             <div class="resume-section-title">Work Experience</div>
-            <div class="resume-text" id="previewExperience">
+            <div class="resume-text" id="previewExperienceText" style="display: none;">
               {{ profile.experience if profile and profile.experience else "Work experience will appear here." }}
+            </div>
+            <div id="previewExperienceEntries">
+              {% if profile and profile.experience_entries %}
+                {% for entry in profile.experience_entries %}
+                  <div class="resume-entry">
+                    {% if entry.title %}<div class="resume-entry-title">{{ entry.title }}</div>{% endif %}
+                    {% if entry.details %}<div class="resume-entry-details">{{ entry.details }}</div>{% endif %}
+                    {% if entry.bullets %}
+                      <ul class="resume-bullets">
+                        {% for bullet in entry.bullets %}
+                          <li>{{ bullet }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="resume-text">Work experience will appear here.</div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -546,14 +615,38 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
+    function renderEntryPreview(containerSelector, textSelector, entries, fallbackText) {
+      const $container = $(containerSelector);
+      const $text = $(textSelector);
+
+      if (Array.isArray(entries) && entries.length) {
+        const html = entries.map((entry) => {
+          const title = entry.title ? `<div class="resume-entry-title">${$("<div>").text(entry.title).html()}</div>` : "";
+          const details = entry.details ? `<div class="resume-entry-details">${$("<div>").text(entry.details).html()}</div>` : "";
+          const bullets = Array.isArray(entry.bullets) && entry.bullets.length
+            ? `<ul class="resume-bullets">${entry.bullets.map((bullet) => `<li>${$("<div>").text(bullet).html()}</li>`).join("")}</ul>`
+            : "";
+
+          return `<div class="resume-entry">${title}${details}${bullets}</div>`;
+        }).join("");
+
+        $container.html(html);
+        $text.hide().text("");
+        return;
+      }
+
+      $container.html(`<div class="resume-text">${$("<div>").text(fallbackText).html()}</div>`);
+      $text.hide().text(fallbackText);
+    }
+
     function showStatus(message) {
       $("#statusMessage").stop(true, true).hide().text(message).fadeIn(150);
     }
 
     function syncPreviewToHiddenFields() {
       $("#savedSkills").val($("#previewSkills").text().trim());
-      $("#savedProjects").val($("#previewProjects").text().trim());
-      $("#savedExperience").val($("#previewExperience").text().trim());
+      $("#savedProjects").val($("#previewProjectsText").text().trim());
+      $("#savedExperience").val($("#previewExperienceText").text().trim());
     }
 
     function updatePreviewFromResponse(response) {
@@ -562,12 +655,16 @@
       $("#previewEducationTop").text(response.education_top || "");
       $("#previewEducationBottom").text(response.education_bottom || "");
       $("#previewSkills").text(response.skills || "");
-      $("#previewProjects").text(response.projects || "");
-      $("#previewExperience").text(response.experience || "");
+      $("#previewProjectsText").text(response.projects || "");
+      $("#previewExperienceText").text(response.experience || "");
+      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", response.projects_entries, response.projects || "Projects will appear here.");
+      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", response.experience_entries, response.experience || "Work experience will appear here.");
       syncPreviewToHiddenFields();
     }
 
     $(document).ready(function () {
+      renderEntryPreview("#previewProjectsEntries", "#previewProjectsText", {{ (profile.projects_entries if profile and profile.projects_entries else []) | tojson }}, $("#previewProjectsText").text().trim() || "Projects will appear here.");
+      renderEntryPreview("#previewExperienceEntries", "#previewExperienceText", {{ (profile.experience_entries if profile and profile.experience_entries else []) | tojson }}, $("#previewExperienceText").text().trim() || "Work experience will appear here.");
       syncPreviewToHiddenFields();
 
       $("#generateBtn").on("click", function () {
