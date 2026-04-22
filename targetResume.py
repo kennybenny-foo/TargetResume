@@ -1477,7 +1477,7 @@ def job_tracker():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
-    jobs = list(jobs_collection.find({"user_id": user_id}))
+    jobs = list(jobs_collection.find({"user_id": user_id}).sort("updated_at", -1))
 
     grouped_jobs = {
         "Saved": [],
@@ -1489,6 +1489,12 @@ def job_tracker():
 
     for job in jobs:
         status = job.get("status", "Saved")
+        created_date, created_time = format_datetime_for_display(job.get("created_at"))
+        updated_date, updated_time = format_datetime_for_display(job.get("updated_at"))
+        job["display_created_date"] = created_date
+        job["display_created_time"] = created_time
+        job["display_updated_date"] = updated_date
+        job["display_updated_time"] = updated_time
         if status in grouped_jobs:
             grouped_jobs[status].append(job)
 
@@ -1517,6 +1523,37 @@ def add_job():
 
     jobs_collection.insert_one(new_job)
     return redirect(url_for("job_tracker"))
+
+
+@app.route("/update-job-status/<job_id>", methods=["POST"])
+def update_job_status(job_id):
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    new_status = (request.form.get("status") or "").strip()
+    valid_statuses = {"Saved", "Applied", "Interview", "Offer", "Rejected"}
+
+    if new_status not in valid_statuses:
+        return jsonify({"success": False, "error": "Invalid status."}), 400
+
+    result = jobs_collection.update_one(
+        {
+            "_id": ObjectId(job_id),
+            "user_id": user_id
+        },
+        {
+            "$set": {
+                "status": new_status,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    if result.matched_count == 1:
+        return jsonify({"success": True, "status": new_status})
+
+    return jsonify({"success": False, "error": "Job not found."}), 404
 
 
 @app.route("/delete-job/<job_id>", methods=["POST"])

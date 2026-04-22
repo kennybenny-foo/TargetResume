@@ -162,6 +162,31 @@
       max-width: 700px;
     }
 
+    .tracker-tools {
+      padding: 0 40px 20px;
+      display: grid;
+      grid-template-columns: minmax(240px, 1.4fr) minmax(180px, 0.8fr);
+      gap: 14px;
+    }
+
+    .tracker-tools input,
+    .tracker-tools select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #d6e0d7;
+      background: #ffffff;
+      color: #1e293b;
+      font-size: 0.95rem;
+    }
+
+    .tracker-tools input:focus,
+    .tracker-tools select:focus {
+      outline: none;
+      border-color: #6b8f71;
+      box-shadow: 0 0 0 4px rgba(107, 143, 113, 0.14);
+    }
+
     .stats-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -373,6 +398,46 @@
       gap: 8px;
       flex-wrap: wrap;
       margin-top: 8px;
+      align-items: center;
+    }
+
+    .status-move {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .status-select {
+      flex: 1;
+      min-width: 140px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid #d9e3da;
+      background: #ffffff;
+      color: #334155;
+      font-size: 0.9rem;
+    }
+
+    .move-job-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+      background: #eef5ef;
+      color: #3f5f45;
+      border: 1px solid #d9e7da;
+    }
+
+    .move-job-btn:hover {
+      background: #e3efe4;
+    }
+
+    .card-hidden {
+      display: none !important;
     }
 
     .delete-btn {
@@ -560,6 +625,18 @@
     </div>
   </section>
 
+  <section class="tracker-tools">
+    <input type="text" id="jobSearchInput" placeholder="Search by company, job title, location, notes, or resume name">
+    <select id="jobFilterSelect">
+      <option value="all">All statuses</option>
+      <option value="Saved">Saved</option>
+      <option value="Applied">Applied</option>
+      <option value="Interview">Interview</option>
+      <option value="Offer">Offer</option>
+      <option value="Rejected">Rejected</option>
+    </select>
+  </section>
+
   <section class="stats-row">
     <div class="stat-card">
       <h3>{{ grouped_jobs["Saved"]|length + grouped_jobs["Applied"]|length + grouped_jobs["Interview"]|length + grouped_jobs["Offer"]|length + grouped_jobs["Rejected"]|length }}</h3>
@@ -619,7 +696,7 @@
         <div class="job-list">
           {% if grouped_jobs["Saved"] %}
             {% for job in grouped_jobs["Saved"] %}
-            <div class="job-card" id="job-{{ job._id }}">
+            <div class="job-card" id="job-{{ job._id }}" data-status="{{ job.status }}" data-search="{{ (job.job_title ~ ' ' ~ job.company ~ ' ' ~ (job.location or '') ~ ' ' ~ (job.notes or '') ~ ' ' ~ (job.resume_name or '')) | lower }}">
               <h3>{{ job.job_title }}</h3>
               <div class="company-name">{{ job.company }}</div>
 
@@ -631,9 +708,19 @@
                 {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
                 {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
                 {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+                {% if job.display_created_date %}<div>Saved: {{ job.display_created_date }}{% if job.display_created_time %} at {{ job.display_created_time }}{% endif %}</div>{% endif %}
+                {% if job.display_updated_date %}<div>Last Updated: {{ job.display_updated_date }}{% if job.display_updated_time %} at {{ job.display_updated_time }}{% endif %}</div>{% endif %}
               </div>
 
               <div class="job-actions">
+                <div class="status-move">
+                  <select class="status-select" data-id="{{ job._id }}">
+                    {% for status_option in ["Saved", "Applied", "Interview", "Offer", "Rejected"] %}
+                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="move-job-btn" data-id="{{ job._id }}">Move</button>
+                </div>
                 <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
               </div>
             </div>
@@ -652,7 +739,7 @@
         <div class="job-list">
           {% if grouped_jobs["Applied"] %}
             {% for job in grouped_jobs["Applied"] %}
-            <div class="job-card" id="job-{{ job._id }}">
+            <div class="job-card" id="job-{{ job._id }}" data-status="{{ job.status }}" data-search="{{ (job.job_title ~ ' ' ~ job.company ~ ' ' ~ (job.location or '') ~ ' ' ~ (job.notes or '') ~ ' ' ~ (job.resume_name or '')) | lower }}">
               <h3>{{ job.job_title }}</h3>
               <div class="company-name">{{ job.company }}</div>
 
@@ -664,9 +751,19 @@
                 {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
                 {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
                 {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+                {% if job.display_created_date %}<div>Saved: {{ job.display_created_date }}{% if job.display_created_time %} at {{ job.display_created_time }}{% endif %}</div>{% endif %}
+                {% if job.display_updated_date %}<div>Last Updated: {{ job.display_updated_date }}{% if job.display_updated_time %} at {{ job.display_updated_time }}{% endif %}</div>{% endif %}
               </div>
 
               <div class="job-actions">
+                <div class="status-move">
+                  <select class="status-select" data-id="{{ job._id }}">
+                    {% for status_option in ["Saved", "Applied", "Interview", "Offer", "Rejected"] %}
+                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="move-job-btn" data-id="{{ job._id }}">Move</button>
+                </div>
                 <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
               </div>
             </div>
@@ -685,7 +782,7 @@
         <div class="job-list">
           {% if grouped_jobs["Interview"] %}
             {% for job in grouped_jobs["Interview"] %}
-            <div class="job-card" id="job-{{ job._id }}">
+            <div class="job-card" id="job-{{ job._id }}" data-status="{{ job.status }}" data-search="{{ (job.job_title ~ ' ' ~ job.company ~ ' ' ~ (job.location or '') ~ ' ' ~ (job.notes or '') ~ ' ' ~ (job.resume_name or '')) | lower }}">
               <h3>{{ job.job_title }}</h3>
               <div class="company-name">{{ job.company }}</div>
 
@@ -697,9 +794,19 @@
                 {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
                 {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
                 {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+                {% if job.display_created_date %}<div>Saved: {{ job.display_created_date }}{% if job.display_created_time %} at {{ job.display_created_time }}{% endif %}</div>{% endif %}
+                {% if job.display_updated_date %}<div>Last Updated: {{ job.display_updated_date }}{% if job.display_updated_time %} at {{ job.display_updated_time }}{% endif %}</div>{% endif %}
               </div>
 
               <div class="job-actions">
+                <div class="status-move">
+                  <select class="status-select" data-id="{{ job._id }}">
+                    {% for status_option in ["Saved", "Applied", "Interview", "Offer", "Rejected"] %}
+                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="move-job-btn" data-id="{{ job._id }}">Move</button>
+                </div>
                 <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
               </div>
             </div>
@@ -718,7 +825,7 @@
         <div class="job-list">
           {% if grouped_jobs["Offer"] %}
             {% for job in grouped_jobs["Offer"] %}
-            <div class="job-card" id="job-{{ job._id }}">
+            <div class="job-card" id="job-{{ job._id }}" data-status="{{ job.status }}" data-search="{{ (job.job_title ~ ' ' ~ job.company ~ ' ' ~ (job.location or '') ~ ' ' ~ (job.notes or '') ~ ' ' ~ (job.resume_name or '')) | lower }}">
               <h3>{{ job.job_title }}</h3>
               <div class="company-name">{{ job.company }}</div>
 
@@ -730,9 +837,19 @@
                 {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
                 {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
                 {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+                {% if job.display_created_date %}<div>Saved: {{ job.display_created_date }}{% if job.display_created_time %} at {{ job.display_created_time }}{% endif %}</div>{% endif %}
+                {% if job.display_updated_date %}<div>Last Updated: {{ job.display_updated_date }}{% if job.display_updated_time %} at {{ job.display_updated_time }}{% endif %}</div>{% endif %}
               </div>
 
               <div class="job-actions">
+                <div class="status-move">
+                  <select class="status-select" data-id="{{ job._id }}">
+                    {% for status_option in ["Saved", "Applied", "Interview", "Offer", "Rejected"] %}
+                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="move-job-btn" data-id="{{ job._id }}">Move</button>
+                </div>
                 <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
               </div>
             </div>
@@ -751,7 +868,7 @@
         <div class="job-list">
           {% if grouped_jobs["Rejected"] %}
             {% for job in grouped_jobs["Rejected"] %}
-            <div class="job-card" id="job-{{ job._id }}">
+            <div class="job-card" id="job-{{ job._id }}" data-status="{{ job.status }}" data-search="{{ (job.job_title ~ ' ' ~ job.company ~ ' ' ~ (job.location or '') ~ ' ' ~ (job.notes or '') ~ ' ' ~ (job.resume_name or '')) | lower }}">
               <h3>{{ job.job_title }}</h3>
               <div class="company-name">{{ job.company }}</div>
 
@@ -763,9 +880,19 @@
                 {% if job.location %}<div>Location: {{ job.location }}</div>{% endif %}
                 {% if job.job_link %}<div><a class="job-link" href="{{ job.job_link }}" target="_blank">Open Posting</a></div>{% endif %}
                 {% if job.notes %}<div>Notes: {{ job.notes }}</div>{% endif %}
+                {% if job.display_created_date %}<div>Saved: {{ job.display_created_date }}{% if job.display_created_time %} at {{ job.display_created_time }}{% endif %}</div>{% endif %}
+                {% if job.display_updated_date %}<div>Last Updated: {{ job.display_updated_date }}{% if job.display_updated_time %} at {{ job.display_updated_time }}{% endif %}</div>{% endif %}
               </div>
 
               <div class="job-actions">
+                <div class="status-move">
+                  <select class="status-select" data-id="{{ job._id }}">
+                    {% for status_option in ["Saved", "Applied", "Interview", "Offer", "Rejected"] %}
+                    <option value="{{ status_option }}" {% if job.status == status_option %}selected{% endif %}>{{ status_option }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="move-job-btn" data-id="{{ job._id }}">Move</button>
+                </div>
                 <button type="button" class="delete-btn delete-job-btn" data-id="{{ job._id }}">Delete</button>
               </div>
             </div>
@@ -887,6 +1014,29 @@
         return JSON.stringify($(".job-form").serializeArray());
       }
 
+      function applyJobFilters() {
+        const query = ($("#jobSearchInput").val() || "").trim().toLowerCase();
+        const statusFilter = $("#jobFilterSelect").val();
+
+        $(".job-card").each(function () {
+          const status = $(this).data("status");
+          const searchText = $(this).data("search") || "";
+          const matchesQuery = !query || searchText.includes(query);
+          const matchesStatus = statusFilter === "all" || status === statusFilter;
+          $(this).toggleClass("card-hidden", !(matchesQuery && matchesStatus));
+        });
+
+        $(".column").each(function () {
+          const $visibleCards = $(this).find(".job-card").not(".card-hidden");
+          const $emptyState = $(this).find(".empty-state");
+          if ($visibleCards.length === 0) {
+            $emptyState.show();
+          } else {
+            $emptyState.hide();
+          }
+        });
+      }
+
       initialJobFormState = getJobFormState();
 
       window.addEventListener("beforeunload", function (event) {
@@ -927,6 +1077,41 @@
 
       $(".job-form").on("submit", function () {
         allowNavigationWithoutWarning = true;
+      });
+
+      $("#jobSearchInput, #jobFilterSelect").on("input change", applyJobFilters);
+      applyJobFilters();
+
+      $(".move-job-btn").on("click", function () {
+        const jobId = $(this).data("id");
+        const $card = $("#job-" + jobId);
+        const $select = $card.find(".status-select");
+        const targetStatus = $select.val();
+        const $button = $(this);
+
+        $button.prop("disabled", true).text("Moving...");
+
+        $.ajax({
+          url: "/update-job-status/" + jobId,
+          type: "POST",
+          data: { status: targetStatus },
+          success: function (response) {
+            if (response.success) {
+              location.reload();
+            } else {
+              openAlertModal("Move Failed", "Could not update that job status.");
+            }
+          },
+          error: function (xhr) {
+            const message = xhr.responseJSON && xhr.responseJSON.error
+              ? xhr.responseJSON.error
+              : "Something went wrong while moving the job.";
+            openAlertModal("Move Failed", message);
+          },
+          complete: function () {
+            $button.prop("disabled", false).text("Move");
+          }
+        });
       });
 
       $(".delete-job-btn").on("click", async function () {
