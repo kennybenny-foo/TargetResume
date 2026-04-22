@@ -818,7 +818,8 @@
                 {% for entry in active_experience_entries %}
                   <div class="resume-entry">
                     {% if entry.title %}<div class="resume-entry-title">{{ entry.title }}</div>{% endif %}
-                    {% if entry.details %}<div class="resume-entry-details">{{ entry.details }}</div>{% endif %}
+                    {% set experience_details = entry.details if entry.details else ([entry.location, entry.dates] | select | join(' | ')) %}
+                    {% if experience_details %}<div class="resume-entry-details">{{ experience_details }}</div>{% endif %}
                     {% if entry.bullets %}
                       <ul class="resume-bullets">
                         {% for bullet in entry.bullets %}
@@ -867,7 +868,8 @@
       if (Array.isArray(entries) && entries.length) {
         const html = entries.map((entry) => {
           const title = entry.title ? `<div class="resume-entry-title">${$("<div>").text(entry.title).html()}</div>` : "";
-          const details = entry.details ? `<div class="resume-entry-details">${$("<div>").text(entry.details).html()}</div>` : "";
+          const detailsText = entry.details || [entry.location, entry.dates].filter(Boolean).join(" | ");
+          const details = detailsText ? `<div class="resume-entry-details">${$("<div>").text(detailsText).html()}</div>` : "";
           const bullets = Array.isArray(entry.bullets) && entry.bullets.length
             ? `<ul class="resume-bullets">${entry.bullets.map((bullet) => `<li>${$("<div>").text(bullet).html()}</li>`).join("")}</ul>`
             : "";

@@ -697,15 +697,41 @@
       titleInput.value = entry.title || "";
       titleGroup.appendChild(titleInput);
 
-      const detailsGroup = document.createElement("div");
-      detailsGroup.className = "form-group";
-      detailsGroup.innerHTML = `<label>${entryLabel} Details</label>`;
-      const detailsInput = document.createElement("input");
-      detailsInput.type = "text";
-      detailsInput.className = "entry-details";
-      detailsInput.placeholder = entryLabel === "Project" ? "e.g. Flask, MongoDB, OpenAI API" : "e.g. Company | City, State | Dates";
-      detailsInput.value = entry.details || "";
-      detailsGroup.appendChild(detailsInput);
+      let detailsGroup = null;
+      let locationGroup = null;
+      let datesGroup = null;
+
+      if (entryLabel === "Experience") {
+        locationGroup = document.createElement("div");
+        locationGroup.className = "form-group";
+        locationGroup.innerHTML = "<label>Experience Location</label>";
+        const locationInput = document.createElement("input");
+        locationInput.type = "text";
+        locationInput.className = "entry-location";
+        locationInput.placeholder = "e.g. Cal Poly Pomona";
+        locationInput.value = entry.location || "";
+        locationGroup.appendChild(locationInput);
+
+        datesGroup = document.createElement("div");
+        datesGroup.className = "form-group";
+        datesGroup.innerHTML = "<label>Dates</label>";
+        const datesInput = document.createElement("input");
+        datesInput.type = "text";
+        datesInput.className = "entry-dates";
+        datesInput.placeholder = "e.g. August 2021 - June 2023";
+        datesInput.value = entry.dates || "";
+        datesGroup.appendChild(datesInput);
+      } else {
+        detailsGroup = document.createElement("div");
+        detailsGroup.className = "form-group";
+        detailsGroup.innerHTML = `<label>${entryLabel} Details</label>`;
+        const detailsInput = document.createElement("input");
+        detailsInput.type = "text";
+        detailsInput.className = "entry-details";
+        detailsInput.placeholder = "e.g. Flask, MongoDB, OpenAI API";
+        detailsInput.value = entry.details || "";
+        detailsGroup.appendChild(detailsInput);
+      }
 
       const bulletsWrap = document.createElement("div");
       bulletsWrap.className = "form-group";
@@ -730,7 +756,15 @@
 
       card.appendChild(header);
       card.appendChild(titleGroup);
-      card.appendChild(detailsGroup);
+      if (detailsGroup) {
+        card.appendChild(detailsGroup);
+      }
+      if (locationGroup) {
+        card.appendChild(locationGroup);
+      }
+      if (datesGroup) {
+        card.appendChild(datesGroup);
+      }
       card.appendChild(bulletsWrap);
       builder.appendChild(card);
     }
@@ -802,11 +836,13 @@
 
           return {
             title: card.querySelector(".entry-title").value.trim(),
-            details: card.querySelector(".entry-details").value.trim(),
+            details: card.querySelector(".entry-details") ? card.querySelector(".entry-details").value.trim() : "",
+            location: card.querySelector(".entry-location") ? card.querySelector(".entry-location").value.trim() : "",
+            dates: card.querySelector(".entry-dates") ? card.querySelector(".entry-dates").value.trim() : "",
             bullets
           };
         })
-        .filter((entry) => entry.title || entry.details || entry.bullets.length);
+        .filter((entry) => entry.title || entry.details || entry.location || entry.dates || entry.bullets.length);
     }
 
     function serializeSkillsBuilder() {

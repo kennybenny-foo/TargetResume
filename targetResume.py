@@ -72,12 +72,16 @@ def normalize_resume_entries(raw_value):
 
         title = normalize_text_block(item.get("title"))
         details = normalize_text_block(item.get("details"))
+        location = normalize_text_block(item.get("location"))
+        dates = normalize_text_block(item.get("dates"))
         bullets = parse_bullets(item.get("bullets"))
 
-        if title or details or bullets:
+        if title or details or location or dates or bullets:
             entries.append({
                 "title": title,
                 "details": details,
+                "location": location,
+                "dates": dates,
                 "bullets": bullets
             })
 
@@ -89,9 +93,11 @@ def format_resume_entries(entries):
     for entry in entries:
         title = normalize_text_block(entry.get("title"))
         details = normalize_text_block(entry.get("details"))
+        location = normalize_text_block(entry.get("location"))
+        dates = normalize_text_block(entry.get("dates"))
         bullets = parse_bullets(entry.get("bullets"))
 
-        header_parts = [part for part in [title, details] if part]
+        header_parts = [part for part in [title, details or location, dates] if part]
         lines = []
         if header_parts:
             lines.append(" | ".join(header_parts))
@@ -269,14 +275,23 @@ def parse_resume_text_to_entries(text):
             if current:
                 entries.append(current)
             parts = [part.strip() for part in line.split("|")]
+            details = " | ".join(parts[1:]) if len(parts) > 1 else ""
+            location = ""
+            dates = ""
+            if len(parts) >= 3:
+                location = parts[1]
+                dates = " | ".join(parts[2:])
+                details = ""
             current = {
                 "title": parts[0] if parts else "",
-                "details": " | ".join(parts[1:]) if len(parts) > 1 else "",
+                "details": details,
+                "location": location,
+                "dates": dates,
                 "bullets": []
             }
     if current:
         entries.append(current)
-    return [entry for entry in entries if entry.get("title") or entry.get("details") or entry.get("bullets")]
+    return [entry for entry in entries if entry.get("title") or entry.get("details") or entry.get("location") or entry.get("dates") or entry.get("bullets")]
 
 
 def prepare_profile_for_view(profile):
@@ -436,6 +451,19 @@ def split_text_to_lines(text, font_name, font_size, max_width):
         lines.append(current)
 
     return lines
+
+
+def looks_like_date_text(text):
+    text = normalize_text_block(text).lower()
+    if not text:
+        return False
+
+    month_tokens = [
+        "jan", "feb", "mar", "apr", "may", "jun",
+        "jul", "aug", "sep", "oct", "nov", "dec",
+        "present", "current"
+    ]
+    return any(token in text for token in month_tokens) or any(char.isdigit() for char in text)
 
 
 app = Flask(__name__)
@@ -908,27 +936,33 @@ def export_resume():
                 if header_parts:
                     if len(header_parts) == 1:
                         left_text = header_parts[0]
+                    elif len(header_parts) == 2 and not looks_like_date_text(header_parts[1]):
+                        left_text = ", ".join(header_parts)
                     else:
                         left_text = ", ".join(header_parts[:-1])
                         right_text = header_parts[-1]
 
-                font_name = "Times-Italic"
-                font_size = 9.8
-                right_width = stringWidth(right_text, font_name, font_size) if right_text else 0
+                left_font_name = "Times-Bold"
+                left_font_size = 9.8
+                right_font_name = "Times-Italic"
+                right_font_size = 9.8
+                right_width = stringWidth(right_text, right_font_name, right_font_size) if right_text else 0
                 left_width = content_width - right_width - 18 if right_text else content_width
-                left_lines = split_text_to_lines(left_text, font_name, font_size, left_width) if left_text else []
+                left_lines = split_text_to_lines(left_text, left_font_name, left_font_size, left_width) if left_text else []
                 line_count = max(len(left_lines), 1)
                 ensure_space(line_count * 12)
 
-                p.setFont(font_name, font_size)
+                p.setFont(left_font_name, left_font_size)
                 if left_lines:
                     p.drawString(left_margin, y, left_lines[0])
                 if right_text:
+                    p.setFont(right_font_name, right_font_size)
                     p.drawRightString(page_width - right_margin, y, right_text)
                 y -= 12
 
                 for continuation in left_lines[1:]:
                     ensure_space(12)
+                    p.setFont(left_font_name, left_font_size)
                     p.drawString(left_margin, y, continuation)
                     y -= 12
 
