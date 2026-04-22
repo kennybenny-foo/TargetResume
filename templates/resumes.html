@@ -434,8 +434,8 @@
 
             <div class="resume-meta">
               <div><strong>Folder:</strong> {{ resume.folder if resume.folder else "Saved Drafts" }}</div>
-              <div><strong>Saved:</strong> {{ resume.updated_at.strftime("%b %d, %Y") if resume.updated_at else "" }}</div>
-              <div><strong>Time:</strong> {{ resume.updated_at.strftime("%I:%M %p") if resume.updated_at else "" }}</div>
+              <div><strong>Saved:</strong> {{ resume.display_date if resume.display_date else "" }}</div>
+              <div><strong>Time:</strong> {{ resume.display_time if resume.display_time else "" }}</div>
             </div>
 
             <div class="move-row">

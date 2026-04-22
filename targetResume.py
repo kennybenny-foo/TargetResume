@@ -4,6 +4,7 @@ import json
 
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -15,6 +16,8 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
+
+DISPLAY_TIMEZONE = ZoneInfo("America/Los_Angeles")
 
 
 def get_required_env(name):
@@ -214,6 +217,18 @@ def prepare_resume_for_view(resume):
     resume["projects_entries"] = normalize_resume_entries(resume.get("projects_entries")) or parse_resume_text_to_entries(resume.get("projects", ""))
     resume["experience_entries"] = normalize_resume_entries(resume.get("experience_entries")) or parse_resume_text_to_entries(resume.get("experience", ""))
     return resume
+
+
+def format_datetime_for_display(value):
+    if not value:
+        return "", ""
+
+    display_value = value
+    if value.tzinfo is None:
+        display_value = value.replace(tzinfo=ZoneInfo("UTC"))
+
+    display_value = display_value.astimezone(DISPLAY_TIMEZONE)
+    return display_value.strftime("%b %d, %Y"), display_value.strftime("%I:%M %p")
 
 
 def parse_ai_rewrite_response(parsed, profile):
@@ -802,6 +817,11 @@ def resumes():
             resume for resume in all_resumes
             if resume.get("folder", "Saved Drafts") == selected_folder
         ]
+
+    for resume in filtered_resumes:
+        display_date, display_time = format_datetime_for_display(resume.get("updated_at"))
+        resume["display_date"] = display_date
+        resume["display_time"] = display_time
 
     return render_template(
         "resumes.html",
