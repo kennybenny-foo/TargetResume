@@ -1069,9 +1069,12 @@ def export_resume():
             description = normalize_text_block(entry.get("description"))
             if name or date:
                 ensure_space(12)
+                p.setFont("Times-Roman", 10.5)
+                if name:
+                    p.drawString(left_margin, y, u"\u2022")
                 p.setFont("Times-Bold", 10.5)
                 if name:
-                    p.drawString(left_margin, y, name)
+                    p.drawString(left_margin + 10, y, name)
                 if date:
                     p.setFont("Times-Italic", 10)
                     p.drawRightString(page_width - right_margin, y, date)
@@ -1109,7 +1112,8 @@ def export_resume():
         y -= 13
         if education_degree:
             p.setFont("Times-Roman", 10.5)
-            p.drawString(left_margin + 12, y, education_degree)
+            p.drawString(left_margin, y, u"\u2022")
+            p.drawString(left_margin + 10, y, education_degree)
             y -= 16
 
     if skills_lines:
