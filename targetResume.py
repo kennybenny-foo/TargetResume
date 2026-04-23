@@ -486,6 +486,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "targetresume_dev_secret_key
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
 
 MONGODB_URI = get_required_env("MONGODB_URI")
 
@@ -500,6 +501,13 @@ folders_collection = db["folders"]
 
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "5025"))
+
+
+@app.context_processor
+def inject_global_template_vars():
+    return {
+        "ga_measurement_id": GA_MEASUREMENT_ID
+    }
 
 
 @app.route("/")
