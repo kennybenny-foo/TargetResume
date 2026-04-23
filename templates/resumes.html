@@ -708,6 +708,12 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script>
     $(document).ready(function () {
+      function trackEvent(eventName, params = {}) {
+        if (typeof gtag === "function") {
+          gtag("event", eventName, params);
+        }
+      }
+
       function openModal(options) {
         const settings = Object.assign({
           eyebrow: "TargetResume",
@@ -908,6 +914,9 @@
           type: "POST",
           success: function (response) {
             if (response.success) {
+              trackEvent("resume_duplicated", {
+                page_location: window.location.pathname
+              });
               location.reload();
             } else {
               openAlertModal("Duplicate Failed", "Could not duplicate that saved resume.");
@@ -945,6 +954,9 @@
           data: { title: promptResult.value },
           success: function (response) {
             if (response.success) {
+              trackEvent("resume_renamed", {
+                page_location: window.location.pathname
+              });
               location.reload();
             } else {
               openAlertModal("Rename Failed", "Could not rename that saved resume.");
@@ -978,6 +990,9 @@
           data: { folder: targetFolder },
           success: function (response) {
             if (response.success) {
+              trackEvent("resume_moved", {
+                folder: response.folder
+              });
               $folderMeta.html("<strong>Folder:</strong> " + response.folder);
 
               if ("{{ selected_folder }}" !== "All Resumes" && "{{ selected_folder }}" !== response.folder) {
@@ -1022,6 +1037,9 @@
           type: "POST",
           success: function (response) {
             if (response.success) {
+              trackEvent("resume_deleted", {
+                page_location: window.location.pathname
+              });
               resumeCard.fadeOut(200, function () {
                 $(this).remove();
                 location.reload();
@@ -1033,6 +1051,12 @@
           error: function () {
             openAlertModal("Delete Failed", "Something went wrong while deleting the resume.");
           }
+        });
+      });
+
+      $('a[href^="/dashboard?resume_id="]').on("click", function () {
+        trackEvent("saved_resume_opened", {
+          page_location: window.location.pathname
         });
       });
     });

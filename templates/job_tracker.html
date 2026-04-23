@@ -931,6 +931,12 @@
       let allowNavigationWithoutWarning = false;
       let initialJobFormState = "";
 
+      function trackEvent(eventName, params = {}) {
+        if (typeof gtag === "function") {
+          gtag("event", eventName, params);
+        }
+      }
+
       function openModal(options) {
         const settings = Object.assign({
           eyebrow: "TargetResume",
@@ -1083,6 +1089,9 @@
       });
 
       $(".job-form").on("submit", function () {
+        trackEvent("job_added", {
+          status: $('.job-form select[name="status"]').val()
+        });
         allowNavigationWithoutWarning = true;
       });
 
@@ -1104,6 +1113,9 @@
           data: { status: targetStatus },
           success: function (response) {
             if (response.success) {
+              trackEvent("job_status_moved", {
+                status: targetStatus
+              });
               location.reload();
             } else {
               openAlertModal("Move Failed", "Could not update that job status.");
@@ -1140,6 +1152,9 @@
           type: "POST",
           success: function (response) {
             if (response.success) {
+              trackEvent("job_deleted", {
+                page_location: window.location.pathname
+              });
               jobCard.fadeOut(250, function () {
                 $(this).remove();
                 location.reload();

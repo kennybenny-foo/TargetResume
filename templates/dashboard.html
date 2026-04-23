@@ -1076,6 +1076,12 @@
       $("#statusMessage").stop(true, true).hide().text(message).fadeIn(150);
     }
 
+    function trackEvent(eventName, params = {}) {
+      if (typeof gtag === "function") {
+        gtag("event", eventName, params);
+      }
+    }
+
     function extractSkillsTextFromPreview() {
       const items = [];
       $("#previewSkillsEntries .skills-list li").each(function () {
@@ -1446,6 +1452,9 @@
           data: $("#resumeForm").serialize(),
           success: function (response) {
             updatePreviewFromResponse(response);
+            trackEvent("load_saved_profile", {
+              page_location: window.location.pathname
+            });
             showStatus("Saved profile loaded into the preview.");
           },
           error: function (xhr) {
@@ -1467,6 +1476,10 @@
           success: function (response) {
             updatePreviewFromResponse(response);
             syncPreviewToHiddenFields();
+            trackEvent("ai_rewrite_clicked", {
+              has_job_title: Boolean($("#jobtitle").val().trim()),
+              has_notes: Boolean($("#notes").val().trim())
+            });
             showStatus("AI rewrite applied to the preview.");
             setRewriteLoadingState(false);
           },
@@ -1492,6 +1505,10 @@
           if (response.success) {
             initialEditorState = getCurrentEditorState();
             allowNavigationWithoutWarning = true;
+            trackEvent("resume_saved", {
+              folder: $("#folder").val().trim() || "Saved Drafts",
+              has_job_title: Boolean($("#jobtitle").val().trim())
+            });
             showStatus("Resume version saved. Redirecting to My Resumes...");
             setTimeout(function () {
               window.location.href = "/resumes";
@@ -1527,6 +1544,10 @@
           success: function (response) {
             if (response.success) {
               initialEditorState = getCurrentEditorState();
+              trackEvent("resume_updated", {
+                folder: $("#folder").val().trim() || "Saved Drafts",
+                has_job_title: Boolean($("#jobtitle").val().trim())
+              });
               showStatus("Saved resume updated.");
             } else {
               showStatus("Could not update this saved version.");
@@ -1545,6 +1566,11 @@
       $("#exportBtn").on("click", function () {
         syncPreviewToHiddenFields();
         allowNavigationWithoutWarning = true;
+        trackEvent("resume_exported", {
+          has_job_title: Boolean($("#jobtitle").val().trim()),
+          has_projects: Boolean($("#savedProjects").val().trim()),
+          has_experience: Boolean($("#savedExperience").val().trim())
+        });
 
         const params = $.param({
           job_title: $("#jobtitle").val(),

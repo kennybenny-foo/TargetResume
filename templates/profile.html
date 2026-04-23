@@ -602,6 +602,12 @@
     let allowNavigationWithoutWarning = false;
     let initialProfileState = "";
 
+    function trackEvent(eventName, params = {}) {
+      if (typeof gtag === "function") {
+        gtag("event", eventName, params);
+      }
+    }
+
     function openConfirmModal(title, message) {
       const $overlay = $("#appModal");
       const $title = $("#appModalTitle");
@@ -1062,6 +1068,11 @@
       });
 
       document.querySelector("#profileForm").addEventListener("submit", function () {
+        trackEvent("profile_saved", {
+          has_projects: Boolean(document.getElementById("projects_entries").value),
+          has_experience: Boolean(document.getElementById("experience_entries").value),
+          has_certifications: Boolean(document.getElementById("certifications_entries").value)
+        });
         syncStructuredFields();
         allowNavigationWithoutWarning = true;
       });
