@@ -574,6 +574,18 @@
       white-space: normal;
     }
 
+    .resume-bullet-line {
+      position: relative;
+      padding-left: 12px;
+    }
+
+    .resume-bullet-line::before {
+      content: "\2022";
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
     .education-top-row {
       display: flex;
       justify-content: space-between;
@@ -603,6 +615,10 @@
       flex: 1;
       min-width: 0;
       margin-bottom: 0;
+    }
+
+    .resume-entry-top-row .resume-entry-title.resume-bullet-line {
+      padding-left: 12px;
     }
 
     .resume-entry-date {
@@ -813,7 +829,7 @@
                   {% endif %}
                 </div>
               </div>
-              <div class="resume-text" id="previewEducationBottom">
+              <div class="resume-text resume-bullet-line" id="previewEducationBottom">
                 {{ selected_resume.degree if selected_resume and selected_resume.degree else (profile.degree if profile and profile.degree else "") }}
               </div>
             </div>
@@ -851,7 +867,7 @@
                   <div class="resume-entry">
                     {% if entry.name or entry.date %}
                       <div class="resume-entry-top-row">
-                        {% if entry.name %}<div class="resume-entry-title">{{ entry.name }}</div>{% endif %}
+                        {% if entry.name %}<div class="resume-entry-title resume-bullet-line">{{ entry.name }}</div>{% endif %}
                         {% if entry.date %}<div class="resume-entry-date">{{ entry.date }}</div>{% endif %}
                       </div>
                     {% endif %}
@@ -1032,7 +1048,7 @@
       if (Array.isArray(entries) && entries.length) {
         const html = entries.map((entry) => {
           const header = (entry.name || entry.date)
-            ? `<div class="resume-entry-top-row">${entry.name ? `<div class="resume-entry-title">${$("<div>").text(entry.name).html()}</div>` : "<div></div>"}${entry.date ? `<div class="resume-entry-date">${$("<div>").text(entry.date).html()}</div>` : ""}</div>`
+            ? `<div class="resume-entry-top-row">${entry.name ? `<div class="resume-entry-title resume-bullet-line">${$("<div>").text(entry.name).html()}</div>` : "<div></div>"}${entry.date ? `<div class="resume-entry-date">${$("<div>").text(entry.date).html()}</div>` : ""}</div>`
             : "";
           const description = entry.description ? `<div class="resume-text">${$("<div>").text(entry.description).html()}</div>` : "";
           return `<div class="resume-entry">${header}${description}</div>`;
