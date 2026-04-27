@@ -194,8 +194,9 @@
 
     .container {
       display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
-      gap: 28px;
+      grid-template-columns: minmax(420px, 1.05fr) 12px minmax(460px, 1fr);
+      column-gap: 8px;
+      align-items: start;
       padding: 26px 40px 40px;
     }
 
@@ -205,6 +206,48 @@
       padding: 28px;
       box-shadow: 0 14px 36px rgba(15, 23, 42, 0.07);
       border: 1px solid #e8eeea;
+    }
+
+    .split-divider {
+      position: relative;
+      align-self: stretch;
+      cursor: col-resize;
+      user-select: none;
+      touch-action: none;
+      min-height: 100%;
+    }
+
+    .split-divider::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #d7e2d8 0%, #bccfbe 100%);
+      opacity: 0.9;
+    }
+
+    .split-divider::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 64px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #d7e2d8;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    .container.is-resizing,
+    .container.is-resizing * {
+      cursor: col-resize !important;
+      user-select: none !important;
     }
 
     .card h3 {
@@ -683,9 +726,14 @@
     @media (max-width: 1100px) {
       .container {
         grid-template-columns: 1fr;
+        row-gap: 28px;
       }
 
       .nav-center {
+        display: none;
+      }
+
+      .split-divider {
         display: none;
       }
     }
@@ -749,7 +797,7 @@
   </section>
 
   <main class="container">
-    <section class="card">
+    <section class="card" id="targetJobPanel">
       <h3>Build Your Target Resume</h3>
 
       <div class="profile-status">
@@ -808,7 +856,9 @@
       <div id="statusMessage" class="status-message"></div>
     </section>
 
-    <section class="card">
+    <div class="split-divider" id="dashboardSplitDivider" aria-hidden="true"></div>
+
+    <section class="card" id="previewPanel">
       <h3>Live Resume Preview</h3>
 
       <div class="preview-wrapper">
@@ -1360,6 +1410,73 @@
     $(document).ready(function () {
       let initialEditorState = "";
       let allowNavigationWithoutWarning = false;
+      const splitContainer = document.querySelector(".container");
+      const splitDivider = document.getElementById("dashboardSplitDivider");
+      const minLeftWidth = 420;
+      const minRightWidth = 460;
+      const dividerWidth = 12;
+      let isResizingSplit = false;
+
+      function setSplitColumns(leftWidth) {
+        if (!splitContainer || window.innerWidth <= 1100) {
+          return;
+        }
+
+        const containerWidth = splitContainer.getBoundingClientRect().width;
+        const maxLeftWidth = containerWidth - minRightWidth - dividerWidth;
+        const boundedLeftWidth = Math.min(Math.max(leftWidth, minLeftWidth), maxLeftWidth);
+        splitContainer.style.gridTemplateColumns = `${boundedLeftWidth}px ${dividerWidth}px minmax(${minRightWidth}px, 1fr)`;
+      }
+
+      function stopSplitResize() {
+        if (!isResizingSplit || !splitContainer) {
+          return;
+        }
+        isResizingSplit = false;
+        splitContainer.classList.remove("is-resizing");
+        document.body.style.cursor = "";
+      }
+
+      if (splitContainer && splitDivider) {
+        splitDivider.addEventListener("pointerdown", function (event) {
+          if (window.innerWidth <= 1100) {
+            return;
+          }
+          isResizingSplit = true;
+          splitContainer.classList.add("is-resizing");
+          document.body.style.cursor = "col-resize";
+          splitDivider.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        });
+
+        splitDivider.addEventListener("pointermove", function (event) {
+          if (!isResizingSplit) {
+            return;
+          }
+          const containerRect = splitContainer.getBoundingClientRect();
+          setSplitColumns(event.clientX - containerRect.left);
+        });
+
+        splitDivider.addEventListener("pointerup", stopSplitResize);
+        splitDivider.addEventListener("pointercancel", stopSplitResize);
+
+        window.addEventListener("resize", function () {
+          if (!splitContainer) {
+            return;
+          }
+
+          if (window.innerWidth <= 1100) {
+            splitContainer.style.gridTemplateColumns = "";
+            return;
+          }
+
+          const currentColumns = getComputedStyle(splitContainer).gridTemplateColumns.split(" ");
+          const currentLeft = parseFloat(currentColumns[0]);
+          if (!Number.isNaN(currentLeft)) {
+            setSplitColumns(currentLeft);
+          }
+        });
+      }
 
       function openConfirmModal(title, message) {
         const $overlay = $("#appModal");
