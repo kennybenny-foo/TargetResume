@@ -470,9 +470,10 @@
       border-radius: 18px;
       padding: 24px;
       border: 1px solid #e5ece6;
-      overflow-x: auto;
+      overflow: auto;
       display: flex;
       justify-content: center;
+      align-items: flex-start;
     }
 
     .paper {
@@ -486,6 +487,7 @@
       box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
       border: 1px solid #e7ece8;
       font-family: "Times New Roman", Georgia, serif;
+      transform-origin: top center;
     }
 
     .paper,
@@ -1412,10 +1414,34 @@
       let allowNavigationWithoutWarning = false;
       const splitContainer = document.querySelector(".container");
       const splitDivider = document.getElementById("dashboardSplitDivider");
+      const previewWrapper = document.querySelector(".preview-wrapper");
+      const resumePreview = document.getElementById("resumePreview");
       const minLeftWidth = 420;
       const minRightWidth = 460;
       const dividerWidth = 12;
       let isResizingSplit = false;
+
+      function fitResumePreviewToPanel() {
+        if (!previewWrapper || !resumePreview) {
+          return;
+        }
+
+        if (window.innerWidth <= 1100) {
+          resumePreview.style.transform = "";
+          previewWrapper.style.minHeight = "";
+          return;
+        }
+
+        const wrapperStyles = getComputedStyle(previewWrapper);
+        const horizontalPadding = parseFloat(wrapperStyles.paddingLeft) + parseFloat(wrapperStyles.paddingRight);
+        const availableWidth = previewWrapper.clientWidth - horizontalPadding;
+        const paperWidth = 816;
+        const paperHeight = 1056;
+        const scale = Math.min(1, availableWidth / paperWidth);
+
+        resumePreview.style.transform = `scale(${scale})`;
+        previewWrapper.style.minHeight = `${Math.ceil((paperHeight * scale) + 48)}px`;
+      }
 
       function setSplitColumns(leftWidth) {
         if (!splitContainer || window.innerWidth <= 1100) {
@@ -1426,6 +1452,7 @@
         const maxLeftWidth = containerWidth - minRightWidth - dividerWidth;
         const boundedLeftWidth = Math.min(Math.max(leftWidth, minLeftWidth), maxLeftWidth);
         splitContainer.style.gridTemplateColumns = `${boundedLeftWidth}px ${dividerWidth}px minmax(${minRightWidth}px, 1fr)`;
+        requestAnimationFrame(fitResumePreviewToPanel);
       }
 
       function stopSplitResize() {
@@ -1474,9 +1501,13 @@
           const currentLeft = parseFloat(currentColumns[0]);
           if (!Number.isNaN(currentLeft)) {
             setSplitColumns(currentLeft);
+          } else {
+            fitResumePreviewToPanel();
           }
         });
       }
+
+      fitResumePreviewToPanel();
 
       function openConfirmModal(title, message) {
         const $overlay = $("#appModal");
