@@ -39,25 +39,65 @@
       box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
     }
 
-    .brand {
+    .nav-shell {
       display: flex;
-      flex-direction: column;
-      width: fit-content;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .nav-left,
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
       text-decoration: none;
+      color: #2f4b33;
+      font-size: 1rem;
+      font-weight: 500;
+      padding-bottom: 8px;
+      border-bottom: 3px solid transparent;
+      transition: 0.2s ease;
     }
 
-    .logo {
-      font-family: "Poppins", sans-serif;
-      font-size: 2.5rem;
-      font-weight: 700;
-      letter-spacing: -0.8px;
-      color: #0f172a;
+    .nav-link:hover,
+    .nav-link.active {
+      color: #1e293b;
+      border-bottom-color: #6b8f71;
     }
 
-    .tagline {
-      font-size: 0.85rem;
-      color: #5f6f63;
-      margin-top: 2px;
+    .profile-btn,
+    .logout-btn {
+      text-decoration: none;
+      border-radius: 18px;
+      border: 1px solid #d6e0d7;
+      background: #ffffff;
+      color: #415044;
+      padding: 10px 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 500;
+      transition: 0.2s ease;
+    }
+
+    .profile-btn:hover,
+    .logout-btn:hover {
+      background: #edf3ee;
+      color: #1e293b;
+      transform: translateY(-1px);
+    }
+
+    .avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6b8f71, #a7c4a0);
     }
 
     .page-wrap {
@@ -124,22 +164,38 @@
         padding: 18px 20px;
       }
 
-      .policy-card {
-        padding: 28px 22px;
+      .nav-shell {
+        align-items: flex-start;
       }
 
-      .logo {
-        font-size: 2.2rem;
+      .nav-left,
+      .nav-right {
+        width: 100%;
+      }
+
+      .policy-card {
+        padding: 28px 22px;
       }
     }
   </style>
 </head>
 <body>
   <header class="top-bar">
-    <a href="/" class="brand">
-      <span class="logo">TargetResume</span>
-      <span class="tagline">AI-Assisted Resume Builder</span>
-    </a>
+    <nav class="nav-shell">
+      <div class="nav-left">
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/resumes" class="nav-link">My Resumes</a>
+        <a href="/job-tracker" class="nav-link">Job Tracker</a>
+      </div>
+
+      <div class="nav-right">
+        <a href="/profile" class="profile-btn">
+          <span class="avatar"></span>
+          My Profile
+        </a>
+        <a href="/logout" class="logout-btn">Logout</a>
+      </div>
+    </nav>
   </header>
 
   <main class="page-wrap">
