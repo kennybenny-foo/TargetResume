@@ -206,6 +206,7 @@
       padding: 28px;
       box-shadow: 0 14px 36px rgba(15, 23, 42, 0.07);
       border: 1px solid #e8eeea;
+      min-width: 0;
     }
 
     .split-divider {
@@ -474,6 +475,7 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
+      min-width: 0;
     }
 
     .paper {
@@ -489,6 +491,11 @@
       font-family: "Times New Roman", Georgia, serif;
       transform-origin: top center;
       transition: width 0.12s ease;
+    }
+
+    #previewPanel {
+      min-width: 0;
+      overflow: hidden;
     }
 
     .paper,
