@@ -1509,7 +1509,11 @@
         });
       }
 
-      fitResumePreviewToPanel();
+      if (window.innerWidth > 1100) {
+        setSplitColumns(minLeftWidth);
+      } else {
+        fitResumePreviewToPanel();
+      }
 
       function openConfirmModal(title, message) {
         const $overlay = $("#appModal");
