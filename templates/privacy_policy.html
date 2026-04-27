@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy | TargetResume</title>
+  {% if ga_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ ga_measurement_id }}');
+  </script>
+  {% endif %}
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    .top-bar {
+      background: #dfe7e1;
+      border-bottom: 1px solid #d2ddd4;
+      padding: 18px 40px;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      width: fit-content;
+      text-decoration: none;
+    }
+
+    .logo {
+      font-family: "Poppins", sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: #0f172a;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #5f6f63;
+      margin-top: 2px;
+    }
+
+    .page-wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 20px 56px;
+    }
+
+    .policy-card {
+      background: #ffffff;
+      border: 1px solid #e3ece4;
+      border-radius: 24px;
+      padding: 34px 30px;
+      box-shadow: 0 14px 32px rgba(95, 138, 102, 0.08);
+    }
+
+    h1 {
+      font-size: 2.15rem;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .updated {
+      color: #64748b;
+      margin-bottom: 28px;
+      font-size: 0.95rem;
+    }
+
+    section + section {
+      margin-top: 26px;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin-bottom: 10px;
+      color: #0f172a;
+    }
+
+    p, li {
+      color: #475569;
+      line-height: 1.7;
+      font-size: 0.98rem;
+    }
+
+    ul {
+      padding-left: 22px;
+      margin-top: 10px;
+    }
+
+    a {
+      color: #4d7354;
+    }
+
+    .footer-links {
+      margin-top: 30px;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 600px) {
+      .top-bar {
+        padding: 18px 20px;
+      }
+
+      .policy-card {
+        padding: 28px 22px;
+      }
+
+      .logo {
+        font-size: 2.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <a href="/" class="brand">
+      <span class="logo">TargetResume</span>
+      <span class="tagline">AI-Assisted Resume Builder</span>
+    </a>
+  </header>
+
+  <main class="page-wrap">
+    <article class="policy-card">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: April 26, 2026</p>
+
+      <section>
+        <h2>Overview</h2>
+        <p>TargetResume helps users create, tailor, save, and export resumes. This Privacy Policy explains what information we collect, how we use it, and the choices available to users of the site.</p>
+      </section>
+
+      <section>
+        <h2>Information We Collect</h2>
+        <p>We may collect information you provide directly, including account details and resume-related content you enter into the app.</p>
+        <ul>
+          <li>Name, email address, and login information</li>
+          <li>Profile details such as education, skills, projects, work experience, and certifications</li>
+          <li>Saved resumes, job tracker entries, folders, notes, and exported resume content</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How We Use Information</h2>
+        <ul>
+          <li>To create and manage your account</li>
+          <li>To store and display your profile, resumes, and job tracker data</li>
+          <li>To generate AI-assisted resume rewrites based on the information you provide</li>
+          <li>To improve site functionality, reliability, and user experience</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Analytics</h2>
+        <p>We use Google Analytics to understand general website usage, such as page visits and feature interaction. Google Analytics may collect information such as pages visited, device/browser information, approximate location, and interaction data. For more information, visit <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google&rsquo;s Privacy Policy</a>.</p>
+      </section>
+
+      <section>
+        <h2>How Your Data Is Stored</h2>
+        <p>Information you submit may be stored in third-party infrastructure used to run the application, such as database hosting, analytics services, and AI service providers used to process rewrite requests.</p>
+      </section>
+
+      <section>
+        <h2>Sharing of Information</h2>
+        <p>We do not sell your personal information. We may share data with service providers only as needed to operate the app, such as hosting, analytics, and AI processing services.</p>
+      </section>
+
+      <section>
+        <h2>Data Retention</h2>
+        <p>We keep account and resume-related information for as long as it is needed to provide the service, maintain the application, or meet legal and operational requirements.</p>
+      </section>
+
+      <section>
+        <h2>Your Choices</h2>
+        <p>You can choose what information to provide in your profile and saved resumes. If you want your account or data removed, you can contact us to request deletion.</p>
+      </section>
+
+      <section>
+        <h2>Contact</h2>
+        <p>If you have questions about this Privacy Policy or want to request deletion of your data, contact: <a href="mailto:kennymejia10@gmail.com">kennymejia10@gmail.com</a></p>
+      </section>
+
+      <div class="footer-links">
+        <a href="/login">Log In</a>
+        <a href="/signup">Create Account</a>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
