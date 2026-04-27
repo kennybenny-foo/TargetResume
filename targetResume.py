@@ -1137,11 +1137,16 @@ def export_resume():
 
     p.save()
     buffer.seek(0)
+    raw_name = normalize_text_block(profile.get("name", "")) or "targetresume"
+    safe_name = "_".join(raw_name.split())
+    safe_name = "".join(ch for ch in safe_name if ch.isalnum() or ch in ("_", "-")).strip("_-")
+    if not safe_name:
+        safe_name = "targetresume"
 
     return send_file(
         buffer,
         as_attachment=True,
-        download_name="target_resume_export.pdf",
+        download_name=f"{safe_name}_targetresume.pdf",
         mimetype="application/pdf"
     )
 
