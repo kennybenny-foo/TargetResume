@@ -34,79 +34,117 @@
 
     .navbar {
       background: #dfe7e1;
-      border-bottom: 1px solid #d2ddd4;
-      padding: 18px 40px;
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+      color: #1e293b;
+      padding: 16px 40px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid #d2ddd4;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
-    .nav-left,
-    .nav-center,
-    .nav-right {
+    .nav-left {
       display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
+      flex-direction: column;
     }
 
     .brand {
+      text-decoration: none;
       display: flex;
       flex-direction: column;
-      width: fit-content;
-      text-decoration: none;
     }
 
     .logo {
       font-family: "Poppins", sans-serif;
-      font-size: 2.35rem;
+      font-size: 2.5rem;
       font-weight: 700;
       letter-spacing: -0.8px;
       color: #0f172a;
-      line-height: 1;
     }
 
     .tagline {
       font-size: 0.85rem;
       color: #5f6f63;
-      margin-top: 4px;
+      margin-top: 2px;
+    }
+
+    .nav-center {
+      display: flex;
+      gap: 30px;
     }
 
     .nav-link {
+      position: relative;
+      color: #415044;
       text-decoration: none;
-      color: #2f4b33;
-      font-size: 1rem;
       font-weight: 500;
-      padding-bottom: 8px;
-      border-bottom: 3px solid transparent;
-      transition: 0.2s ease;
+      padding: 6px 2px;
+      transition: color 0.25s ease;
     }
 
-    .nav-link:hover,
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 0%;
+      height: 2px;
+      background: #6b8f71;
+      transition: width 0.25s ease;
+    }
+
+    .nav-link:hover {
+      color: #1e293b;
+    }
+
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      width: 100%;
+    }
+
     .nav-link.active {
       color: #1e293b;
-      border-bottom-color: #6b8f71;
     }
 
-    .profile-btn,
-    .logout-btn {
-      text-decoration: none;
-      border-radius: 18px;
-      border: 1px solid #d6e0d7;
-      background: #ffffff;
-      color: #415044;
-      padding: 10px 18px;
-      display: inline-flex;
+    .nav-right {
+      display: flex;
       align-items: center;
       gap: 12px;
-      font-weight: 500;
-      transition: 0.2s ease;
     }
 
-    .profile-btn:hover,
+    .profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #edf3ee;
+      border: 1px solid #cfdccf;
+      padding: 8px 14px;
+      border-radius: 14px;
+      color: #3f5f45;
+      font-weight: 500;
+      text-decoration: none;
+      transition: 0.25s ease;
+    }
+
+    .profile-btn:hover {
+      background: #e1ebe2;
+      transform: translateY(-1px);
+    }
+
+    .logout-btn {
+      background: #f7faf7;
+      border: 1px solid #d6e0d7;
+      color: #415044;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-weight: 500;
+      transition: 0.25s ease;
+    }
+
     .logout-btn:hover {
       background: #edf3ee;
       color: #1e293b;
@@ -114,8 +152,8 @@
     }
 
     .avatar {
-      width: 22px;
-      height: 22px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       background: linear-gradient(135deg, #6b8f71, #a7c4a0);
     }
@@ -179,23 +217,24 @@
       font-size: 0.95rem;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 900px) {
       .navbar {
-        padding: 18px 20px;
+        flex-wrap: wrap;
+        gap: 18px;
       }
 
-      .navbar {
-        align-items: flex-start;
-      }
-
-      .nav-left,
-      .nav-center,
-      .nav-right {
+      .nav-center {
+        order: 3;
         width: 100%;
+        justify-content: flex-start;
       }
+    }
 
-      .logo {
-        font-size: 2.05rem;
+    @media (max-width: 700px) {
+      .navbar {
+        padding-left: 20px;
+        padding-right: 20px;
+        gap: 14px;
       }
 
       .policy-card {
