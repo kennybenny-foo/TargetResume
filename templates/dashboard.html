@@ -794,6 +794,7 @@
           {% endif %}
           <button type="button" id="saveBtn" class="ghost-btn">Save Version</button>
           <button type="button" id="exportBtn" class="ghost-btn">Export PDF</button>
+          <button type="button" id="exportDocxBtn" class="ghost-btn">Export DOCX</button>
         </div>
       </form>
 
@@ -1583,6 +1584,29 @@
         });
 
         window.location.href = "/export-resume?" + params;
+        setTimeout(function () {
+          allowNavigationWithoutWarning = false;
+        }, 1000);
+      });
+
+      $("#exportDocxBtn").on("click", function () {
+        syncPreviewToHiddenFields();
+        allowNavigationWithoutWarning = true;
+        trackEvent("resume_exported_docx", {
+          has_job_title: Boolean($("#jobtitle").val().trim()),
+          has_projects: Boolean($("#savedProjects").val().trim()),
+          has_experience: Boolean($("#savedExperience").val().trim())
+        });
+
+        const params = $.param({
+          job_title: $("#jobtitle").val(),
+          tailored_skills: $("#savedSkills").val(),
+          tailored_projects: $("#savedProjects").val(),
+          tailored_experience: $("#savedExperience").val(),
+          tailored_certifications: $("#savedCertifications").val()
+        });
+
+        window.location.href = "/export-resume-docx?" + params;
         setTimeout(function () {
           allowNavigationWithoutWarning = false;
         }, 1000);

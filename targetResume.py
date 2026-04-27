@@ -14,6 +14,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from dotenv import load_dotenv
+try:
+    from docx import Document
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
+    from docx.shared import Inches, Pt
+except ImportError:
+    Document = None
 
 load_dotenv(override=True)
 
@@ -31,6 +38,15 @@ def normalize_text_block(value):
     if value is None:
         return ""
     return str(value).strip()
+
+
+def build_export_filename(profile_name, extension):
+    raw_name = normalize_text_block(profile_name) or "targetresume"
+    safe_name = "_".join(raw_name.split())
+    safe_name = "".join(ch for ch in safe_name if ch.isalnum() or ch in ("_", "-")).strip("_-")
+    if not safe_name:
+        safe_name = "targetresume"
+    return f"{safe_name}_targetresume.{extension}"
 
 
 def parse_bullets(raw_value):
@@ -1137,17 +1153,257 @@ def export_resume():
 
     p.save()
     buffer.seek(0)
-    raw_name = normalize_text_block(profile.get("name", "")) or "targetresume"
-    safe_name = "_".join(raw_name.split())
-    safe_name = "".join(ch for ch in safe_name if ch.isalnum() or ch in ("_", "-")).strip("_-")
-    if not safe_name:
-        safe_name = "targetresume"
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=build_export_filename(profile.get("name", ""), "pdf"),
+        mimetype="application/pdf"
+    )
+
+
+@app.route("/export-resume-docx")
+def export_resume_docx():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if Document is None:
+        return "DOCX export is unavailable because python-docx is not installed.", 500
+
+    user_id = session["user_id"]
+    profile = profiles_collection.find_one({"user_id": user_id}) or {}
+    skills_entries = normalize_skills_entries(profile.get("skills_entries"))
+    project_entries = normalize_resume_entries(profile.get("projects_entries"))
+    experience_entries = normalize_resume_entries(profile.get("experience_entries"))
+    certifications_entries = normalize_certification_entries(profile.get("certifications_entries"))
+
+    tailored_skills = request.args.get(
+        "tailored_skills",
+        format_skills_entries(skills_entries) or profile.get("skills", "")
+    )
+    tailored_projects = request.args.get(
+        "tailored_projects",
+        format_resume_entries(project_entries) or profile.get("projects", "")
+    )
+    tailored_experience = request.args.get(
+        "tailored_experience",
+        format_resume_entries(experience_entries) or profile.get("experience", "")
+    )
+    certifications_text = request.args.get(
+        "tailored_certifications",
+        format_certification_entries(certifications_entries) or profile.get("certifications", "")
+    )
+
+    education_school = ""
+    if profile.get("school"):
+        education_school += profile.get("school", "")
+    if profile.get("school_location"):
+        education_school += f", {profile.get('school_location')}"
+    education_grad = profile.get("expected_grad", "")
+    education_degree = profile.get("degree", "")
+
+    def parse_structured_text(text):
+        sections = []
+        current = None
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("- "):
+                if current is None:
+                    current = {"header": "", "bullets": []}
+                current["bullets"].append(line[2:].strip())
+            else:
+                if current:
+                    sections.append(current)
+                current = {"header": line, "bullets": []}
+        if current:
+            sections.append(current)
+        return sections
+
+    doc = Document()
+    section = doc.sections[0]
+    section.top_margin = Inches(0.5)
+    section.bottom_margin = Inches(0.5)
+    section.left_margin = Inches(0.5)
+    section.right_margin = Inches(0.5)
+
+    base_style = doc.styles["Normal"]
+    base_style.font.name = "Times New Roman"
+    base_style.font.size = Pt(11)
+
+    def set_run_font(run, *, bold=False, italic=False, size=11):
+        run.font.name = "Times New Roman"
+        run.font.size = Pt(size)
+        run.bold = bold
+        run.italic = italic
+
+    def add_section_heading(text):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(8)
+        p.paragraph_format.space_after = Pt(2)
+        run = p.add_run(text)
+        set_run_font(run, bold=True, size=11)
+        border = p._element.get_or_add_pPr()
+        from docx.oxml import OxmlElement
+        p_bdr = OxmlElement("w:pBdr")
+        bottom = OxmlElement("w:bottom")
+        bottom.set("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val", "single")
+        bottom.set("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sz", "6")
+        bottom.set("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}space", "1")
+        bottom.set("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}color", "auto")
+        p_bdr.append(bottom)
+        border.append(p_bdr)
+
+    def add_bullet_line(text, indent_inches=0.2):
+        p = doc.add_paragraph(style="List Bullet")
+        p.paragraph_format.left_indent = Inches(indent_inches)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.space_before = Pt(0)
+        run = p.add_run(text)
+        set_run_font(run, size=11)
+
+    def add_left_right_line(left_text, right_text="", *, left_bold=False, left_italic=False, right_italic=False, bullet=False):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.tab_stops.add_tab_stop(Inches(7.5), WD_TAB_ALIGNMENT.RIGHT)
+        left_prefix = u"\u2022 " if bullet else ""
+        left_run = p.add_run(f"{left_prefix}{left_text}")
+        set_run_font(left_run, bold=left_bold, italic=left_italic, size=11)
+        if right_text:
+            right_run = p.add_run(f"\t{right_text}")
+            set_run_font(right_run, italic=right_italic, size=11)
+
+    name_p = doc.add_paragraph()
+    name_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    name_p.paragraph_format.space_after = Pt(2)
+    name_run = name_p.add_run(profile.get("name", "Your Name"))
+    set_run_font(name_run, bold=True, size=16)
+
+    contact = " | ".join(filter(None, [
+        profile.get("email"),
+        profile.get("phone"),
+        profile.get("linkedin"),
+        profile.get("portfolio")
+    ]))
+    if contact:
+        contact_p = doc.add_paragraph()
+        contact_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        contact_p.paragraph_format.space_after = Pt(8)
+        contact_run = contact_p.add_run(contact)
+        set_run_font(contact_run, size=10)
+
+    if education_school or education_grad or education_degree:
+        add_section_heading("EDUCATION")
+        add_left_right_line(education_school, f"Graduation {education_grad}" if education_grad else "", left_italic=True, right_italic=True)
+        if education_degree:
+            add_bullet_line(education_degree)
+
+    skill_lines = [line.strip() for line in tailored_skills.splitlines() if line.strip()]
+    if skill_lines:
+        add_section_heading("TECHNICAL SKILLS")
+        cleaned_skills = []
+        for line in skill_lines:
+            clean = line[2:].strip() if line.startswith("- ") else line
+            category, values = (clean.split(":", 1) + [""])[:2] if ":" in clean else ("", clean)
+            cleaned_skills.append({"category": category.strip(), "values": values.strip()})
+
+        table = doc.add_table(rows=0, cols=2)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        left_skills = cleaned_skills[::2]
+        right_skills = cleaned_skills[1::2]
+        row_total = max(len(left_skills), len(right_skills))
+
+        for i in range(row_total):
+            row = table.add_row().cells
+            for cell in row:
+                cell.width = Inches(3.6)
+
+            for cell, entry in ((row[0], left_skills[i] if i < len(left_skills) else None), (row[1], right_skills[i] if i < len(right_skills) else None)):
+                cell.text = ""
+                if not entry:
+                    continue
+                p = cell.paragraphs[0]
+                p.style = "List Bullet"
+                p.paragraph_format.space_after = Pt(0)
+                if entry["category"]:
+                    run = p.add_run(f"{entry['category']}:")
+                    set_run_font(run, bold=True, size=10)
+                    value_run = p.add_run(f" {entry['values']}")
+                    set_run_font(value_run, size=10)
+                else:
+                    run = p.add_run(entry["values"])
+                    set_run_font(run, size=10)
+
+    cert_entries = certifications_entries if certifications_entries else parse_certifications_text_to_entries(certifications_text)
+    if cert_entries:
+        add_section_heading("CERTIFICATIONS")
+        for entry in cert_entries:
+            name = normalize_text_block(entry.get("name"))
+            date = normalize_text_block(entry.get("date"))
+            description = normalize_text_block(entry.get("description"))
+            if name or date:
+                add_left_right_line(name, date, left_bold=True, right_italic=True, bullet=True)
+            if description:
+                desc = doc.add_paragraph()
+                desc.paragraph_format.left_indent = Inches(0.2)
+                desc.paragraph_format.space_after = Pt(2)
+                run = desc.add_run(description)
+                set_run_font(run, size=10.5)
+
+    project_sections = parse_structured_text(tailored_projects)
+    if project_sections:
+        add_section_heading("PROJECTS")
+        for entry in project_sections:
+            header = entry["header"]
+            bullets = entry["bullets"]
+            if header:
+                header_parts = [part.strip() for part in header.split("|")]
+                title = header_parts[0] if header_parts else ""
+                details = " | ".join(header_parts[1:]) if len(header_parts) > 1 else ""
+                title_p = doc.add_paragraph()
+                title_p.paragraph_format.space_after = Pt(0)
+                title_run = title_p.add_run(title)
+                set_run_font(title_run, bold=True, size=11)
+                if details:
+                    detail_p = doc.add_paragraph()
+                    detail_p.paragraph_format.space_after = Pt(0)
+                    detail_run = detail_p.add_run(details)
+                    set_run_font(detail_run, italic=True, size=10)
+            for bullet in bullets:
+                add_bullet_line(bullet)
+
+    experience_sections = parse_structured_text(tailored_experience)
+    if experience_sections:
+        add_section_heading("WORK EXPERIENCE")
+        for entry in experience_sections:
+            header = entry["header"]
+            bullets = entry["bullets"]
+            if header:
+                header_parts = [part.strip() for part in header.split("|") if part.strip()]
+                left_text = ""
+                right_text = ""
+                if header_parts:
+                    if len(header_parts) == 1:
+                        left_text = header_parts[0]
+                    elif len(header_parts) == 2 and not looks_like_date_text(header_parts[1]):
+                        left_text = ", ".join(header_parts)
+                    else:
+                        left_text = ", ".join(header_parts[:-1])
+                        right_text = header_parts[-1]
+                add_left_right_line(left_text, right_text, left_bold=True, right_italic=True)
+            for bullet in bullets:
+                add_bullet_line(bullet)
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
 
     return send_file(
         buffer,
         as_attachment=True,
-        download_name=f"{safe_name}_targetresume.pdf",
-        mimetype="application/pdf"
+        download_name=build_export_filename(profile.get("name", ""), "docx"),
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
 
