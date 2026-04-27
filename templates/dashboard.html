@@ -471,7 +471,7 @@
       border-radius: 18px;
       padding: 24px;
       border: 1px solid #e5ece6;
-      overflow: auto;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -480,17 +480,17 @@
 
     .paper {
       background: white;
-      width: 816px;
-      min-height: 1056px;
-      flex: 0 0 auto;
+      width: 100%;
+      max-width: 816px;
+      min-height: 0;
+      aspect-ratio: 8.5 / 11;
+      flex: 1 1 auto;
       margin: 0 auto;
       border-radius: 6px;
       padding: 48px;
       box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
       border: 1px solid #e7ece8;
       font-family: "Times New Roman", Georgia, serif;
-      transform-origin: top center;
-      transition: width 0.12s ease;
     }
 
     #previewPanel {
@@ -1434,21 +1434,7 @@
           return;
         }
 
-        if (window.innerWidth <= 1100) {
-          resumePreview.style.transform = "";
-          resumePreview.style.width = "";
-          previewWrapper.style.minHeight = "";
-          return;
-        }
-
-        const wrapperStyles = getComputedStyle(previewWrapper);
-        const horizontalPadding = parseFloat(wrapperStyles.paddingLeft) + parseFloat(wrapperStyles.paddingRight);
-        const availableWidth = previewWrapper.clientWidth - horizontalPadding;
-        const paperWidth = 816;
-        const fittedWidth = Math.min(paperWidth, availableWidth);
-
-        resumePreview.style.transform = "";
-        resumePreview.style.width = `${Math.floor(fittedWidth)}px`;
+        resumePreview.style.width = "";
         previewWrapper.style.minHeight = "";
       }
 
