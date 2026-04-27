@@ -32,14 +32,11 @@
       min-height: 100vh;
     }
 
-    .top-bar {
+    .navbar {
       background: #dfe7e1;
       border-bottom: 1px solid #d2ddd4;
       padding: 18px 40px;
       box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
-    }
-
-    .nav-shell {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -48,11 +45,34 @@
     }
 
     .nav-left,
+    .nav-center,
     .nav-right {
       display: flex;
       align-items: center;
       gap: 16px;
       flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      width: fit-content;
+      text-decoration: none;
+    }
+
+    .logo {
+      font-family: "Poppins", sans-serif;
+      font-size: 2.35rem;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #5f6f63;
+      margin-top: 4px;
     }
 
     .nav-link {
@@ -160,17 +180,22 @@
     }
 
     @media (max-width: 600px) {
-      .top-bar {
+      .navbar {
         padding: 18px 20px;
       }
 
-      .nav-shell {
+      .navbar {
         align-items: flex-start;
       }
 
       .nav-left,
+      .nav-center,
       .nav-right {
         width: 100%;
+      }
+
+      .logo {
+        font-size: 2.05rem;
       }
 
       .policy-card {
@@ -180,23 +205,28 @@
   </style>
 </head>
 <body>
-  <header class="top-bar">
-    <nav class="nav-shell">
-      <div class="nav-left">
-        <a href="/dashboard" class="nav-link">Dashboard</a>
-        <a href="/resumes" class="nav-link">My Resumes</a>
-        <a href="/job-tracker" class="nav-link">Job Tracker</a>
-      </div>
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="/dashboard" class="brand">
+        <span class="logo">TargetResume</span>
+        <span class="tagline">AI-Assisted Resume Builder</span>
+      </a>
+    </div>
 
-      <div class="nav-right">
-        <a href="/profile" class="profile-btn">
-          <span class="avatar"></span>
-          My Profile
-        </a>
-        <a href="/logout" class="logout-btn">Logout</a>
-      </div>
-    </nav>
-  </header>
+    <div class="nav-center">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/resumes" class="nav-link">My Resumes</a>
+      <a href="/job-tracker" class="nav-link">Job Tracker</a>
+    </div>
+
+    <div class="nav-right">
+      <a href="/profile" class="profile-btn">
+        <span class="avatar"></span>
+        My Profile
+      </a>
+      <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+  </nav>
 
   <main class="page-wrap">
     <article class="policy-card">
