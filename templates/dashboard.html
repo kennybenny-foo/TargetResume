@@ -488,6 +488,7 @@
       border: 1px solid #e7ece8;
       font-family: "Times New Roman", Georgia, serif;
       transform-origin: top center;
+      transition: width 0.12s ease;
     }
 
     .paper,
@@ -1428,6 +1429,7 @@
 
         if (window.innerWidth <= 1100) {
           resumePreview.style.transform = "";
+          resumePreview.style.width = "";
           previewWrapper.style.minHeight = "";
           return;
         }
@@ -1436,11 +1438,11 @@
         const horizontalPadding = parseFloat(wrapperStyles.paddingLeft) + parseFloat(wrapperStyles.paddingRight);
         const availableWidth = previewWrapper.clientWidth - horizontalPadding;
         const paperWidth = 816;
-        const paperHeight = 1056;
-        const scale = Math.min(1, availableWidth / paperWidth);
+        const fittedWidth = Math.min(paperWidth, availableWidth);
 
-        resumePreview.style.transform = `scale(${scale})`;
-        previewWrapper.style.minHeight = `${Math.ceil(paperHeight * scale)}px`;
+        resumePreview.style.transform = "";
+        resumePreview.style.width = `${Math.floor(fittedWidth)}px`;
+        previewWrapper.style.minHeight = "";
       }
 
       function setSplitColumns(leftWidth) {
