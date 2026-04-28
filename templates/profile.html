@@ -551,7 +551,10 @@
     <form id="profileForm" action="/save-profile" method="POST">
       <section class="top-grid">
         <div class="card">
-          <h2>Profile Basics</h2>
+          <div class="section-header-row">
+            <h2>Profile Basics</h2>
+            <button type="button" id="clearProfileBasicsBtn" class="danger-btn">Clear All</button>
+          </div>
 
           <div class="form-grid">
             <div class="form-group">
@@ -592,7 +595,10 @@
         </div>
 
         <div class="card">
-          <h2>Education</h2>
+          <div class="section-header-row">
+            <h2>Education</h2>
+            <button type="button" id="clearEducationBtn" class="danger-btn">Clear All</button>
+          </div>
 
           <div class="form-grid">
             <div class="form-group full">
@@ -1172,6 +1178,15 @@
       syncStructuredFields();
     }
 
+    function clearInputs(ids) {
+      ids.forEach((id) => {
+        const field = document.getElementById(id);
+        if (field) {
+          field.value = "";
+        }
+      });
+    }
+
     function setImportStatus(message, tone = "info") {
       const status = document.getElementById("resumeImportStatus");
       status.textContent = message;
@@ -1339,6 +1354,44 @@
 
         clearProfessionalBackgroundBuilders();
         setImportStatus("Professional background cleared. Add new entries or save the empty section if that is what you want.", "info");
+      });
+
+      document.getElementById("clearProfileBasicsBtn").addEventListener("click", async function () {
+        const result = await openConfirmModal(
+          "Clear profile basics?",
+          "This will remove your full name, email, phone number, location, LinkedIn, GitHub, and portfolio fields from the form.",
+          {
+            eyebrow: "Profile Basics",
+            cancelText: "Keep Entries",
+            confirmText: "Clear All"
+          }
+        );
+
+        if (!result.confirmed) {
+          return;
+        }
+
+        clearInputs(["fullname", "email", "phone", "location", "linkedin", "github", "portfolio"]);
+        setImportStatus("Profile basics cleared. Review the form and click Save Profile if you want to keep those changes.", "info");
+      });
+
+      document.getElementById("clearEducationBtn").addEventListener("click", async function () {
+        const result = await openConfirmModal(
+          "Clear education?",
+          "This will remove your school, school location, expected graduation, and degree fields from the form.",
+          {
+            eyebrow: "Education",
+            cancelText: "Keep Entries",
+            confirmText: "Clear All"
+          }
+        );
+
+        if (!result.confirmed) {
+          return;
+        }
+
+        clearInputs(["school", "school_location", "expected_grad", "degree"]);
+        setImportStatus("Education cleared. Review the form and click Save Profile if you want to keep those changes.", "info");
       });
 
       window.addEventListener("beforeunload", function (event) {
