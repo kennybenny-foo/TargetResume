@@ -711,18 +711,21 @@
       }
     }
 
-    function openConfirmModal(title, message) {
+    function openConfirmModal(title, message, options = {}) {
       const $overlay = $("#appModal");
       const $title = $("#appModalTitle");
       const $message = $("#appModalMessage");
       const $cancel = $("#appModalCancel");
       const $confirm = $("#appModalConfirm");
+      const eyebrow = options.eyebrow || "Unsaved Changes";
+      const cancelText = options.cancelText || "Stay Here";
+      const confirmText = options.confirmText || "Leave Page";
 
-      $("#appModalEyebrow").text("Unsaved Changes");
+      $("#appModalEyebrow").text(eyebrow);
       $title.text(title);
       $message.text(message);
-      $cancel.text("Stay Here");
-      $confirm.text("Leave Page");
+      $cancel.text(cancelText);
+      $confirm.text(confirmText);
       $overlay.addClass("open").attr("aria-hidden", "false");
 
       return new Promise((resolve) => {
@@ -1322,7 +1325,12 @@
       document.getElementById("clearProfessionalBackgroundBtn").addEventListener("click", async function () {
         const result = await openConfirmModal(
           "Clear professional background?",
-          "This will remove all technical skills, projects, work experience, and certifications currently in the form. Your profile basics and education will stay as they are."
+          "This will remove all technical skills, projects, work experience, and certifications currently in the form. Your profile basics and education will stay as they are.",
+          {
+            eyebrow: "Professional Background",
+            cancelText: "Keep Entries",
+            confirmText: "Clear All"
+          }
         );
 
         if (!result.confirmed) {
