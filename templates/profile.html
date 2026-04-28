@@ -322,6 +322,59 @@
       margin-bottom: 12px;
     }
 
+    .import-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .secondary-btn {
+      border: 1px solid #d6e0d7;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #ffffff;
+      color: #415044;
+    }
+
+    .secondary-btn:hover {
+      background: #edf3ee;
+    }
+
+    .secondary-btn:disabled,
+    .primary-btn:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+
+    .status-message {
+      margin-top: 14px;
+      border-radius: 16px;
+      padding: 14px 16px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .status-message.show {
+      display: block;
+    }
+
+    .status-message.info {
+      background: #f3f8f4;
+      color: #3f5f45;
+      border: 1px solid #e2ece3;
+    }
+
+    .status-message.error {
+      background: #fff4f4;
+      color: #8b3a3a;
+      border: 1px solid #f2d1d1;
+    }
+
     .hidden-json {
       display: none;
     }
@@ -468,6 +521,22 @@
 
   <main class="page-container">
     <form id="profileForm" action="/save-profile" method="POST">
+      <section class="section-card">
+        <h2>Import From Resume PDF</h2>
+        <div class="section-note">
+          Upload a resume PDF and TargetResume will scan it to prefill this profile. Review the imported details before saving, since image-only PDFs and unusual formatting may need small touch-ups.
+        </div>
+        <div class="form-group full">
+          <label for="resumePdfUpload">Resume PDF</label>
+          <input type="file" id="resumePdfUpload" accept="application/pdf,.pdf">
+        </div>
+        <div class="import-actions">
+          <button type="button" id="importResumePdfBtn" class="primary-btn">Import Resume PDF</button>
+          <span class="helper-text" style="margin-bottom: 0;">Best results come from text-based PDFs rather than scanned images.</span>
+        </div>
+        <div id="resumeImportStatus" class="status-message info" aria-live="polite"></div>
+      </section>
+
       <section class="top-grid">
         <div class="card">
           <h2>Profile Basics</h2>
@@ -1040,6 +1109,80 @@
         .filter((entry) => entry.name || entry.date || entry.description);
     }
 
+    function renderSkillBuilder(entries) {
+      const builder = document.getElementById("skillsBuilder");
+      builder.innerHTML = "";
+      const seed = Array.isArray(entries) && entries.length ? entries : [{}];
+      seed.forEach((entry) => createSkillGroupCard(entry));
+    }
+
+    function renderEntryBuilder(builderId, entryLabel, entries) {
+      const builder = document.getElementById(builderId);
+      builder.innerHTML = "";
+      const seed = Array.isArray(entries) && entries.length ? entries : [{}];
+      seed.forEach((entry) => createEntryCard(builderId, entryLabel, entry));
+    }
+
+    function renderCertificationsBuilder(entries) {
+      const builder = document.getElementById("certificationsBuilder");
+      builder.innerHTML = "";
+      const seed = Array.isArray(entries) && entries.length ? entries : [{}];
+      seed.forEach((entry) => createCertificationCard(entry));
+    }
+
+    function setImportStatus(message, tone = "info") {
+      const status = document.getElementById("resumeImportStatus");
+      status.textContent = message;
+      status.className = `status-message ${tone} show`;
+    }
+
+    function clearImportStatus() {
+      const status = document.getElementById("resumeImportStatus");
+      status.textContent = "";
+      status.className = "status-message info";
+    }
+
+    function populateProfileFromImport(payload) {
+      const fieldMap = {
+        fullname: "fullname",
+        email: "email",
+        phone: "phone",
+        location: "location",
+        linkedin: "linkedin",
+        github: "github",
+        portfolio: "portfolio",
+        school: "school",
+        school_location: "school_location",
+        expected_grad: "expected_grad",
+        degree: "degree"
+      };
+
+      Object.entries(fieldMap).forEach(([key, id]) => {
+        const value = (payload[key] || "").trim();
+        if (value) {
+          document.getElementById(id).value = value;
+        }
+      });
+
+      if (Array.isArray(payload.skills_entries) && payload.skills_entries.length) {
+        renderSkillBuilder(payload.skills_entries);
+      }
+
+      if (Array.isArray(payload.projects_entries) && payload.projects_entries.length) {
+        renderEntryBuilder("projectsBuilder", "Project", payload.projects_entries);
+      }
+
+      if (Array.isArray(payload.experience_entries) && payload.experience_entries.length) {
+        renderEntryBuilder("experienceBuilder", "Experience", payload.experience_entries);
+      }
+
+      if (Array.isArray(payload.certifications_entries) && payload.certifications_entries.length) {
+        renderCertificationsBuilder(payload.certifications_entries);
+      }
+
+      syncStructuredFields();
+    }
+
     function syncStructuredFields() {
       document.getElementById("skills_entries").value = JSON.stringify(serializeSkillsBuilder());
       document.getElementById("projects_entries").value = JSON.stringify(serializeBuilder("projectsBuilder"));
@@ -1081,6 +1224,49 @@
       });
       syncStructuredFields();
       initialProfileState = getProfileState();
+
+      document.getElementById("importResumePdfBtn").addEventListener("click", async function () {
+        const button = this;
+        const fileInput = document.getElementById("resumePdfUpload");
+        const selectedFile = fileInput.files && fileInput.files[0];
+
+        if (!selectedFile) {
+          setImportStatus("Choose a resume PDF first, then try the import again.", "error");
+          return;
+        }
+
+        clearImportStatus();
+        button.disabled = true;
+        button.textContent = "Importing Resume...";
+
+        try {
+          const formData = new FormData();
+          formData.append("resume_pdf", selectedFile);
+
+          const response = await fetch("/import-profile-resume-pdf", {
+            method: "POST",
+            body: formData
+          });
+
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.error || "Could not import the resume PDF.");
+          }
+
+          populateProfileFromImport(payload);
+          trackEvent("profile_resume_pdf_imported", {
+            imported_projects: Array.isArray(payload.projects_entries) ? payload.projects_entries.length : 0,
+            imported_experience: Array.isArray(payload.experience_entries) ? payload.experience_entries.length : 0,
+            imported_certifications: Array.isArray(payload.certifications_entries) ? payload.certifications_entries.length : 0
+          });
+          setImportStatus("Resume imported into the profile form. Review the extracted details, then click Save Profile when you are ready.", "info");
+        } catch (error) {
+          setImportStatus(error.message || "Could not import the resume PDF.", "error");
+        } finally {
+          button.disabled = false;
+          button.textContent = "Import Resume PDF";
+        }
+      });
 
       window.addEventListener("beforeunload", function (event) {
         if (allowNavigationWithoutWarning) {

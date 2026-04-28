@@ -15,6 +15,10 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from dotenv import load_dotenv
 try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
+try:
     from docx import Document
     from docx.enum.table import WD_TABLE_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
@@ -326,6 +330,71 @@ def prepare_resume_for_view(resume):
     resume["experience_entries"] = normalize_resume_entries(resume.get("experience_entries")) or parse_resume_text_to_entries(resume.get("experience", ""))
     resume["certifications_entries"] = normalize_certification_entries(resume.get("certifications_entries")) or parse_certifications_text_to_entries(resume.get("certifications", ""))
     return resume
+
+
+def extract_text_from_uploaded_pdf(file_storage):
+    if PdfReader is None:
+        raise RuntimeError("PDF import is not available because pypdf is not installed.")
+
+    pdf_bytes = file_storage.read()
+    if not pdf_bytes:
+        raise RuntimeError("The uploaded PDF is empty.")
+
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    pages = []
+    for page in reader.pages:
+        extracted = page.extract_text() or ""
+        if extracted.strip():
+            pages.append(extracted.strip())
+
+    full_text = "\n\n".join(pages).strip()
+    if not full_text:
+        raise RuntimeError("This PDF appears to be image-based or contains no extractable text.")
+
+    return full_text
+
+
+def parse_json_object_from_text(raw_text):
+    cleaned = normalize_text_block(raw_text)
+    if not cleaned:
+        raise ValueError("The AI response was empty.")
+
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise
+        return json.loads(cleaned[start:end + 1])
+
+
+def parse_imported_profile_response(parsed):
+    if not isinstance(parsed, dict):
+        return {}
+
+    return {
+        "fullname": normalize_text_block(parsed.get("fullname") or parsed.get("name")),
+        "email": normalize_text_block(parsed.get("email")),
+        "phone": normalize_text_block(parsed.get("phone")),
+        "location": normalize_text_block(parsed.get("location")),
+        "linkedin": normalize_text_block(parsed.get("linkedin")),
+        "github": normalize_text_block(parsed.get("github")),
+        "portfolio": normalize_text_block(parsed.get("portfolio")),
+        "school": normalize_text_block(parsed.get("school")),
+        "school_location": normalize_text_block(parsed.get("school_location")),
+        "expected_grad": normalize_text_block(parsed.get("expected_grad")),
+        "degree": normalize_text_block(parsed.get("degree")),
+        "skills_entries": normalize_skills_entries(parsed.get("skills_entries")),
+        "projects_entries": normalize_resume_entries(parsed.get("projects_entries")),
+        "experience_entries": normalize_resume_entries(parsed.get("experience_entries")),
+        "certifications_entries": normalize_certification_entries(parsed.get("certifications_entries"))
+    }
 
 
 def format_datetime_for_display(value):
@@ -1642,6 +1711,99 @@ def profile():
     profile_data = prepare_profile_for_view(profiles_collection.find_one({"user_id": user_id}))
 
     return render_template("profile.html", profile=profile_data)
+
+
+@app.route("/import-profile-resume-pdf", methods=["POST"])
+def import_profile_resume_pdf():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not openai_client:
+        return jsonify({"error": "OPENAI_API_KEY is not set."}), 500
+
+    uploaded_file = request.files.get("resume_pdf")
+    if not uploaded_file or not uploaded_file.filename:
+        return jsonify({"error": "Please choose a resume PDF to upload."}), 400
+
+    if not uploaded_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Only PDF files are supported for resume import."}), 400
+
+    try:
+        extracted_text = extract_text_from_uploaded_pdf(uploaded_file)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    prompt = f"""
+You are extracting information from a user's resume PDF to prefill a profile form.
+
+Use ONLY information that is explicitly present in the resume text.
+Do NOT invent missing data.
+Do NOT guess dates, URLs, emails, phone numbers, locations, or certification details.
+If a field is missing, return an empty string or an empty array.
+Keep extracted wording concise and resume-ready.
+For skills, group related skills into professional categories when the resume makes that grouping clear.
+For projects and experience, preserve bullet points as separate bullets whenever possible.
+For certifications, return one entry per certification with name, date, and short description when present.
+
+Return valid JSON only.
+
+Return exactly this JSON format:
+{{
+  "fullname": "Full name",
+  "email": "email@example.com",
+  "phone": "phone number",
+  "location": "City, State",
+  "linkedin": "LinkedIn URL or handle",
+  "github": "GitHub URL or handle",
+  "portfolio": "Portfolio URL",
+  "school": "School name",
+  "school_location": "School location",
+  "expected_grad": "Expected graduation or graduation date",
+  "degree": "Degree name",
+  "skills_entries": [
+    {{
+      "category": "Category name",
+      "values": ["Skill one", "Skill two"]
+    }}
+  ],
+  "projects_entries": [
+    {{
+      "title": "Project name",
+      "details": "Optional short details or subtitle",
+      "bullets": ["Bullet one", "Bullet two"]
+    }}
+  ],
+  "experience_entries": [
+    {{
+      "title": "Role or organization",
+      "location": "Company, school, or location",
+      "dates": "Date range",
+      "bullets": ["Bullet one", "Bullet two"]
+    }}
+  ],
+  "certifications_entries": [
+    {{
+      "name": "Certification name",
+      "date": "Date earned",
+      "description": "Optional short description"
+    }}
+  ]
+}}
+
+Resume text:
+{extracted_text}
+"""
+
+    try:
+        response = openai_client.responses.create(
+            model="gpt-5.4-mini",
+            input=prompt
+        )
+
+        parsed = parse_json_object_from_text(response.output_text)
+        return jsonify(parse_imported_profile_response(parsed))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/save-profile", methods=["POST"])
