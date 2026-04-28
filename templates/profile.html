@@ -346,6 +346,21 @@
       background: #edf3ee;
     }
 
+    .danger-btn {
+      border: 1px solid #e8c9c9;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff7f7;
+      color: #8b3a3a;
+    }
+
+    .danger-btn:hover {
+      background: #fff0f0;
+    }
+
     .secondary-btn:disabled,
     .primary-btn:disabled {
       opacity: 0.7;
@@ -374,6 +389,18 @@
       background: #fff4f4;
       color: #8b3a3a;
       border: 1px solid #f2d1d1;
+    }
+
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-header-row h2 {
+      margin-bottom: 0;
     }
 
     .hidden-json {
@@ -608,7 +635,10 @@
       </section>
 
       <section class="section-card">
-        <h2>Professional Background</h2>
+        <div class="section-header-row">
+          <h2>Professional Background</h2>
+          <button type="button" id="clearProfessionalBackgroundBtn" class="danger-btn">Clear All</button>
+        </div>
 
         <div class="section-note">
           Everything you save here becomes the base content for your live resume preview on the dashboard.
@@ -1131,6 +1161,14 @@
       seed.forEach((entry) => createCertificationCard(entry));
     }
 
+    function clearProfessionalBackgroundBuilders() {
+      renderSkillBuilder([{}]);
+      renderEntryBuilder("projectsBuilder", "Project", [{}]);
+      renderEntryBuilder("experienceBuilder", "Experience", [{}]);
+      renderCertificationsBuilder([{}]);
+      syncStructuredFields();
+    }
+
     function setImportStatus(message, tone = "info") {
       const status = document.getElementById("resumeImportStatus");
       status.textContent = message;
@@ -1279,6 +1317,20 @@
           button.disabled = false;
           button.textContent = "Import Resume PDF";
         }
+      });
+
+      document.getElementById("clearProfessionalBackgroundBtn").addEventListener("click", async function () {
+        const result = await openConfirmModal(
+          "Clear professional background?",
+          "This will remove all technical skills, projects, work experience, and certifications currently in the form. Your profile basics and education will stay as they are."
+        );
+
+        if (!result.confirmed) {
+          return;
+        }
+
+        clearProfessionalBackgroundBuilders();
+        setImportStatus("Professional background cleared. Add new entries or save the empty section if that is what you want.", "info");
       });
 
       window.addEventListener("beforeunload", function (event) {
