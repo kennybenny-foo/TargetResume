@@ -932,7 +932,11 @@ def export_resume():
     education_grad = profile.get("expected_grad", "")
     education_degree = profile.get("degree", "")
 
-    skills_lines = split_text_to_lines(tailored_skills.replace("\u2022", "-"), "Times-Roman", 10.5, content_width - 14)
+    skills_lines = [
+        line.strip()
+        for line in tailored_skills.replace("\u2022", "-").splitlines()
+        if line.strip()
+    ]
 
     def new_page():
         nonlocal y
