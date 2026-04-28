@@ -1029,7 +1029,10 @@ def export_resume():
             text_width = column_width - bullet_width - 4
 
             if not category:
-                return split_text_to_lines(values, "Times-Roman", 10.2, text_width)
+                return [
+                    {"category": "", "value": line}
+                    for line in split_text_to_lines(values, "Times-Roman", 10.2, text_width)
+                ]
 
             category_text = f"{category}:"
             category_width = stringWidth(category_text, "Times-Bold", 10.2)
