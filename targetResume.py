@@ -1019,49 +1019,88 @@ def export_resume():
         right_lines = cleaned_lines[1::2]
         row_count = max(len(left_lines), len(right_lines))
 
+        def wrap_skill_entry(entry):
+            if not entry:
+                return []
+
+            category = normalize_text_block(entry.get("category"))
+            values = normalize_text_block(entry.get("values"))
+            bullet_width = 10
+            text_width = column_width - bullet_width - 4
+
+            if not category:
+                return split_text_to_lines(values, "Times-Roman", 10.2, text_width)
+
+            category_text = f"{category}:"
+            category_width = stringWidth(category_text, "Times-Bold", 10.2)
+            first_line_width = max(text_width - category_width - 4, 40)
+
+            if not values:
+                return [{"category": category_text, "value": ""}]
+
+            words = values.split()
+            value_lines = []
+            current = ""
+
+            for word in words:
+                candidate = f"{current} {word}".strip()
+                allowed_width = first_line_width if not value_lines else text_width
+                if stringWidth(candidate, "Times-Roman", 10.2) <= allowed_width or not current:
+                    current = candidate
+                else:
+                    value_lines.append(current)
+                    current = word
+
+            if current:
+                value_lines.append(current)
+
+            if not value_lines:
+                value_lines = [""]
+
+            wrapped = [{"category": category_text, "value": value_lines[0]}]
+            wrapped.extend({"category": "", "value": line} for line in value_lines[1:])
+            return wrapped
+
         for row_index in range(row_count):
             left_entry = left_lines[row_index] if row_index < len(left_lines) else None
             right_entry = right_lines[row_index] if row_index < len(right_lines) else None
 
-            left_text = f"{left_entry['category']}: {left_entry['values']}" if left_entry and left_entry["category"] else (left_entry["values"] if left_entry else "")
-            right_text = f"{right_entry['category']}: {right_entry['values']}" if right_entry and right_entry["category"] else (right_entry["values"] if right_entry else "")
-
-            left_wrapped = split_text_to_lines(left_text, "Times-Roman", 10.2, column_width - 14) if left_text else []
-            right_wrapped = split_text_to_lines(right_text, "Times-Roman", 10.2, column_width - 14) if right_text else []
+            left_wrapped = wrap_skill_entry(left_entry)
+            right_wrapped = wrap_skill_entry(right_entry)
             row_height = max(len(left_wrapped), len(right_wrapped), 1) * 12
             ensure_space(row_height)
 
-            def draw_skill_column(entry, x_start, wrapped_lines):
-                if not entry or not wrapped_lines:
+            def draw_skill_column(x_start, wrapped_lines):
+                if not wrapped_lines:
                     return
 
-                for index, line in enumerate(wrapped_lines):
+                for index, line_data in enumerate(wrapped_lines):
                     current_y = y - (index * 12)
                     if index == 0:
                         p.setFont("Times-Roman", 10.2)
                         p.drawString(x_start, current_y, u"\u2022")
 
                         text_x = x_start + 10
-                        if entry["category"]:
-                            category_text = f"{entry['category']}:"
+                        if line_data["category"]:
+                            category_text = line_data["category"]
                             p.setFont("Times-Bold", 10.2)
                             p.drawString(text_x, current_y, category_text)
                             category_width = stringWidth(category_text, "Times-Bold", 10.2)
-                            values_text = f" {entry['values']}" if entry["values"] else ""
+                            values_text = f" {line_data['value']}" if line_data["value"] else ""
                             if values_text:
                                 p.setFont("Times-Roman", 10.2)
                                 p.drawString(text_x + category_width, current_y, values_text)
                         else:
                             p.setFont("Times-Roman", 10.2)
-                            p.drawString(text_x, current_y, line)
+                            p.drawString(text_x, current_y, line_data["value"])
                     else:
                         p.setFont("Times-Roman", 10.2)
-                        p.drawString(x_start + 10, current_y, line)
+                        p.drawString(x_start + 10, current_y, line_data["value"])
 
-            draw_skill_column(left_entry, left_margin, left_wrapped)
+            draw_skill_column(left_margin, left_wrapped)
 
             right_x = left_margin + column_width + column_gap
-            draw_skill_column(right_entry, right_x, right_wrapped)
+            draw_skill_column(right_x, right_wrapped)
 
             y -= row_height
 
