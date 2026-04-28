@@ -521,22 +521,6 @@
 
   <main class="page-container">
     <form id="profileForm" action="/save-profile" method="POST">
-      <section class="section-card">
-        <h2>Import From Resume PDF</h2>
-        <div class="section-note">
-          Upload a resume PDF and TargetResume will scan it to prefill this profile. Review the imported details before saving, since image-only PDFs and unusual formatting may need small touch-ups.
-        </div>
-        <div class="form-group full">
-          <label for="resumePdfUpload">Resume PDF</label>
-          <input type="file" id="resumePdfUpload" accept="application/pdf,.pdf">
-        </div>
-        <div class="import-actions">
-          <button type="button" id="importResumePdfBtn" class="primary-btn">Import Resume PDF</button>
-          <span class="helper-text" style="margin-bottom: 0;">Best results come from text-based PDFs rather than scanned images.</span>
-        </div>
-        <div id="resumeImportStatus" class="status-message info" aria-live="polite"></div>
-      </section>
-
       <section class="top-grid">
         <div class="card">
           <h2>Profile Basics</h2>
@@ -604,6 +588,22 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <section class="section-card">
+        <h2>Import From Resume PDF</h2>
+        <div class="section-note">
+          Upload a resume PDF and TargetResume will scan it to prefill this profile. Review the imported details before saving, since image-only PDFs and unusual formatting may need small touch-ups.
+        </div>
+        <div class="form-group full">
+          <label for="resumePdfUpload">Resume PDF</label>
+          <input type="file" id="resumePdfUpload" accept="application/pdf,.pdf">
+        </div>
+        <div class="import-actions">
+          <button type="button" id="importResumePdfBtn" class="primary-btn">Import Resume PDF</button>
+          <span class="helper-text" style="margin-bottom: 0;">Best results come from text-based PDFs rather than scanned images.</span>
+        </div>
+        <div id="resumeImportStatus" class="status-message info" aria-live="polite"></div>
       </section>
 
       <section class="section-card">
@@ -1236,6 +1236,7 @@
         }
 
         clearImportStatus();
+        setImportStatus("Scanning your resume PDF and extracting profile details...", "info");
         button.disabled = true;
         button.textContent = "Importing Resume...";
 
@@ -1248,7 +1249,18 @@
             body: formData
           });
 
-          const payload = await response.json();
+          const rawBody = await response.text();
+          let payload = {};
+          try {
+            payload = rawBody ? JSON.parse(rawBody) : {};
+          } catch (parseError) {
+            payload = {
+              error: response.ok
+                ? "The server returned an unreadable response."
+                : `Server error: ${rawBody.slice(0, 200).trim() || response.statusText}`
+            };
+          }
+
           if (!response.ok) {
             throw new Error(payload.error || "Could not import the resume PDF.");
           }
