@@ -644,6 +644,11 @@
       white-space: normal;
     }
 
+    #previewEducationCertifications {
+      margin-top: 0;
+      white-space: normal;
+    }
+
     .resume-bullet-line {
       position: relative;
       padding-left: 12px;
@@ -910,6 +915,7 @@
               <div class="resume-text resume-bullet-line" id="previewEducationBottom">
                 {{ selected_resume.degree if selected_resume and selected_resume.degree else (profile.degree if profile and profile.degree else "") }}
               </div>
+              <div class="resume-text" id="previewEducationCertifications"></div>
             </div>
           </div>
 
@@ -933,7 +939,7 @@
             </div>
           </div>
 
-          <div class="resume-section" id="certificationsSection">
+          <div class="resume-section" id="certificationsSection" style="display: none;">
             <div class="resume-section-title">Certifications</div>
             <div class="resume-text" id="previewCertificationsText" style="display: none;">
               {{ selected_resume.certifications if selected_resume and selected_resume.certifications else (profile.certifications if profile and profile.certifications else "") }}
@@ -1037,9 +1043,43 @@
       const hasContent = [
         $("#previewEducationTop").text().trim(),
         $("#previewEducationGrad").text().trim(),
-        $("#previewEducationBottom").text().trim()
+        $("#previewEducationBottom").text().trim(),
+        $("#previewEducationCertifications").text().trim()
       ].some(Boolean);
       toggleSection("#educationSection", hasContent);
+    }
+
+    function buildCertificationSummary(entries, fallbackText) {
+      if (Array.isArray(entries) && entries.length) {
+        const names = entries
+          .map((entry) => (entry && entry.name ? String(entry.name).trim() : ""))
+          .filter(Boolean);
+        if (names.length) {
+          return `Certifications: ${names.join(", ")}`;
+        }
+      }
+
+      const normalized = (fallbackText || "").trim();
+      if (!normalized) {
+        return "";
+      }
+
+      const names = [];
+      normalized.split(/\r?\n/).forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return;
+        }
+        if (trimmed.startsWith("- ")) {
+          return;
+        }
+        const name = trimmed.split("|")[0].trim();
+        if (name) {
+          names.push(name);
+        }
+      });
+
+      return names.length ? `Certifications: ${names.join(", ")}` : "";
     }
 
     function renderSkillsPreview(entries, fallbackText) {
@@ -1122,6 +1162,12 @@
     function renderCertificationPreview(entries, fallbackText) {
       const $container = $("#previewCertificationsEntries");
       const $text = $("#previewCertificationsText");
+      const summaryText = buildCertificationSummary(entries, fallbackText || "");
+      $("#previewEducationCertifications")
+        .text(summaryText)
+        .toggleClass("resume-bullet-line", Boolean(summaryText));
+      toggleSection("#certificationsSection", false);
+      refreshEducationVisibility();
 
       if (Array.isArray(entries) && entries.length) {
         const html = entries.map((entry) => {
@@ -1134,13 +1180,11 @@
 
         $container.html(html);
         $text.hide().text("");
-        toggleSection("#certificationsSection", true);
         return;
       }
 
       $container.empty();
       $text.hide().text(fallbackText || "");
-      toggleSection("#certificationsSection", Boolean((fallbackText || "").trim()));
     }
 
     function showStatus(message) {
