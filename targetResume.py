@@ -227,6 +227,20 @@ def format_certification_entries(entries):
     return "\n\n".join(sections)
 
 
+def build_certification_summary(entries, fallback_text=""):
+    normalized_entries = normalize_certification_entries(entries)
+    if not normalized_entries and fallback_text:
+        normalized_entries = parse_certifications_text_to_entries(fallback_text)
+
+    names = []
+    for entry in normalized_entries:
+        name = normalize_text_block(entry.get("name"))
+        if name:
+            names.append(name)
+
+    return ", ".join(names)
+
+
 def parse_certifications_text_to_entries(text):
     entries = []
     current = None
@@ -914,6 +928,8 @@ def export_resume():
         "tailored_certifications",
         format_certification_entries(certifications_entries) or profile.get("certifications", "")
     )
+    certification_summary = build_certification_summary(certifications_entries, certifications_text)
+    certification_summary = build_certification_summary(certifications_entries, certifications_text)
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
@@ -1231,7 +1247,7 @@ def export_resume():
             y -= 13
     y -= 8
 
-    if education_school or education_grad or education_degree:
+    if education_school or education_grad or education_degree or certification_summary:
         draw_section_title("EDUCATION")
         ensure_space(28)
         p.setFont("Times-Italic", 10.5)
@@ -1246,17 +1262,13 @@ def export_resume():
             p.drawString(left_margin, y, u"\u2022")
             p.drawString(left_margin + 10, y, education_degree)
             y -= 16
+        if certification_summary:
+            draw_bullet_list([f"- Certifications: {certification_summary}"])
 
     if skills_lines:
         draw_section_title("TECHNICAL SKILLS")
         draw_two_column_skills(skills_lines)
         y -= 4
-
-    if certifications_entries or certifications_text:
-        draw_section_title("CERTIFICATIONS")
-        draw_certification_sections(
-            certifications_entries if certifications_entries else parse_certifications_text_to_entries(certifications_text)
-        )
 
     if normalize_text_block(tailored_projects):
         draw_section_title("PROJECTS")
@@ -1408,11 +1420,13 @@ def export_resume_docx():
         contact_run = contact_p.add_run(contact)
         set_run_font(contact_run, size=10)
 
-    if education_school or education_grad or education_degree:
+    if education_school or education_grad or education_degree or certification_summary:
         add_section_heading("EDUCATION")
         add_left_right_line(education_school, f"Graduation {education_grad}" if education_grad else "", left_italic=True, right_italic=True)
         if education_degree:
             add_bullet_line(education_degree)
+        if certification_summary:
+            add_bullet_line(f"Certifications: {certification_summary}")
 
     skill_lines = [line.strip() for line in tailored_skills.splitlines() if line.strip()]
     if skill_lines:
@@ -1449,22 +1463,6 @@ def export_resume_docx():
                 else:
                     run = p.add_run(entry["values"])
                     set_run_font(run, size=10)
-
-    cert_entries = certifications_entries if certifications_entries else parse_certifications_text_to_entries(certifications_text)
-    if cert_entries:
-        add_section_heading("CERTIFICATIONS")
-        for entry in cert_entries:
-            name = normalize_text_block(entry.get("name"))
-            date = normalize_text_block(entry.get("date"))
-            description = normalize_text_block(entry.get("description"))
-            if name or date:
-                add_left_right_line(name, date, left_bold=True, right_italic=True, bullet=True)
-            if description:
-                desc = doc.add_paragraph()
-                desc.paragraph_format.left_indent = Inches(0.2)
-                desc.paragraph_format.space_after = Pt(2)
-                run = desc.add_run(description)
-                set_run_font(run, size=10.5)
 
     project_sections = parse_structured_text(tailored_projects)
     if project_sections:
