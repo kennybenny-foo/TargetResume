@@ -526,7 +526,7 @@ def parse_ai_rewrite_response(parsed, profile):
             **entry,
             "bullets": parse_bullets(entry.get("bullets"))[:4]
         }
-        for entry in experience_entries
+        for entry in experience_entries[:3]
     ]
 
     return {
@@ -578,6 +578,228 @@ def looks_like_date_text(text):
         "present", "current"
     ]
     return any(token in text for token in month_tokens) or any(char.isdigit() for char in text)
+
+
+def estimate_bullet_block_height(lines, content_width, text_indent=20, font_name="Times-Roman", font_size=10.5, leading=13):
+    total = 0
+    for bullet in lines:
+        clean_bullet = normalize_text_block(bullet)
+        if clean_bullet.startswith("- "):
+            clean_bullet = clean_bullet[2:].strip()
+        if not clean_bullet:
+            continue
+        wrapped = split_text_to_lines(clean_bullet, font_name, font_size, content_width - text_indent)
+        total += max(len(wrapped), 1) * leading
+    return total
+
+
+def estimate_skills_section_height(lines, content_width):
+    cleaned_lines = []
+    for line in lines:
+        clean = normalize_text_block(line)
+        if not clean:
+            continue
+        if clean.startswith("- "):
+            clean = clean[2:].strip()
+        category = ""
+        values = clean
+        if ":" in clean:
+            category, values = clean.split(":", 1)
+            category = category.strip()
+            values = values.strip()
+        cleaned_lines.append({
+            "category": category,
+            "values": values
+        })
+
+    if not cleaned_lines:
+        return 0
+
+    column_gap = 22
+    column_width = (content_width - column_gap) / 2
+
+    def wrapped_skill_line_count(entry):
+        if not entry:
+            return 0
+        category = normalize_text_block(entry.get("category"))
+        values = normalize_text_block(entry.get("values"))
+        text_width = column_width - 10 - 4
+        if not category:
+            return max(len(split_text_to_lines(values, "Times-Roman", 10.2, text_width)), 1)
+
+        category_text = f"{category}:"
+        category_width = stringWidth(category_text, "Times-Bold", 10.2)
+        first_line_width = max(text_width - category_width - 4, 40)
+        words = values.split()
+        if not words:
+            return 1
+
+        line_count = 1
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            allowed_width = first_line_width if line_count == 1 and not current else text_width
+            if stringWidth(candidate, "Times-Roman", 10.2) <= allowed_width or not current:
+                current = candidate
+            else:
+                line_count += 1
+                current = word
+        return line_count
+
+    left_lines = cleaned_lines[::2]
+    right_lines = cleaned_lines[1::2]
+    row_total = max(len(left_lines), len(right_lines))
+    total = 0
+    for index in range(row_total):
+        left_count = wrapped_skill_line_count(left_lines[index] if index < len(left_lines) else None)
+        right_count = wrapped_skill_line_count(right_lines[index] if index < len(right_lines) else None)
+        total += max(left_count, right_count, 1) * 12
+    return total + 4
+
+
+def estimate_entry_sections_height(entries, content_width, is_experience=False):
+    total = 0
+    for entry in entries:
+        title = normalize_text_block(entry.get("title"))
+        details = normalize_text_block(entry.get("details"))
+        location = normalize_text_block(entry.get("location"))
+        dates = normalize_text_block(entry.get("dates"))
+        bullets = parse_bullets(entry.get("bullets"))
+
+        if is_experience:
+            header_parts = [part.strip() for part in [title, details if details else location, dates] if part.strip()]
+            left_text = ""
+            right_text = ""
+            if header_parts:
+                if len(header_parts) == 1:
+                    left_text = header_parts[0]
+                elif len(header_parts) == 2 and not looks_like_date_text(header_parts[1]):
+                    left_text = ", ".join(header_parts)
+                else:
+                    left_text = ", ".join(header_parts[:-1])
+                    right_text = header_parts[-1]
+
+            right_width = stringWidth(right_text, "Times-Italic", 9.8) if right_text else 0
+            left_width = content_width - right_width - 18 if right_text else content_width
+            left_lines = split_text_to_lines(left_text, "Times-Bold", 9.8, left_width) if left_text else []
+            if left_lines or right_text:
+                total += max(len(left_lines), 1) * 12
+        else:
+            if title:
+                total += max(len(split_text_to_lines(title, "Times-Bold", 10.5, content_width)), 1) * 12
+            if details:
+                total += max(len(split_text_to_lines(details, "Times-Italic", 10, content_width)), 1) * 12
+
+        total += estimate_bullet_block_height(bullets, content_width)
+        total += 3
+    return total
+
+
+def estimate_one_page_resume_height(profile, skills_lines, project_entries, experience_entries, certification_summary, content_width):
+    total = 0
+    contact = " | ".join(filter(None, [
+        profile.get("email"),
+        profile.get("phone"),
+        profile.get("linkedin"),
+        profile.get("portfolio")
+    ]))
+
+    total += 20
+    total += (len(split_text_to_lines(contact, "Times-Roman", 10.5, content_width)) if contact else 0) * 13
+    total += 8
+
+    education_school = ""
+    if profile.get("school"):
+        education_school += profile.get("school", "")
+    if profile.get("school_location"):
+        education_school += f", {profile.get('school_location')}"
+    education_grad = profile.get("expected_grad", "")
+    education_degree = profile.get("degree", "")
+
+    if education_school or education_grad or education_degree or certification_summary:
+        total += 24
+        total += 13
+        if education_degree:
+            total += 16
+        if certification_summary:
+            total += estimate_bullet_block_height([f"- Certifications: {certification_summary}"], content_width)
+
+    if skills_lines:
+        total += 24 + estimate_skills_section_height(skills_lines, content_width)
+
+    if project_entries:
+        total += 24 + estimate_entry_sections_height(project_entries, content_width, is_experience=False)
+
+    if experience_entries:
+        total += 24 + estimate_entry_sections_height(experience_entries, content_width, is_experience=True)
+
+    return total
+
+
+def trim_entries_for_one_page(profile, skills_lines, project_entries, experience_entries, certification_summary, content_width, available_height):
+    trimmed_projects = [
+        {**entry, "bullets": parse_bullets(entry.get("bullets"))[:4]}
+        for entry in project_entries
+    ]
+    trimmed_experience = [
+        {**entry, "bullets": parse_bullets(entry.get("bullets"))[:4]}
+        for entry in experience_entries[:3]
+    ]
+
+    def fits():
+        return estimate_one_page_resume_height(
+            profile,
+            skills_lines,
+            trimmed_projects,
+            trimmed_experience,
+            certification_summary,
+            content_width
+        ) <= available_height
+
+    if fits():
+        return trimmed_projects, trimmed_experience
+
+    while trimmed_experience and not fits():
+        last_entry = trimmed_experience[-1]
+        if len(last_entry.get("bullets", [])) > 2:
+            last_entry["bullets"] = last_entry["bullets"][:-1]
+            continue
+        if len(trimmed_experience) > 1:
+            trimmed_experience.pop()
+            continue
+        break
+
+    while trimmed_projects and not fits():
+        last_entry = trimmed_projects[-1]
+        if len(last_entry.get("bullets", [])) > 2:
+            last_entry["bullets"] = last_entry["bullets"][:-1]
+            continue
+        if len(trimmed_projects) > 1:
+            trimmed_projects.pop()
+            continue
+        break
+
+    while trimmed_experience and not fits():
+        last_entry = trimmed_experience[-1]
+        if len(last_entry.get("bullets", [])) > 1:
+            last_entry["bullets"] = last_entry["bullets"][:-1]
+            continue
+        if len(trimmed_experience) > 1:
+            trimmed_experience.pop()
+            continue
+        break
+
+    while trimmed_projects and not fits():
+        last_entry = trimmed_projects[-1]
+        if len(last_entry.get("bullets", [])) > 1:
+            last_entry["bullets"] = last_entry["bullets"][:-1]
+            continue
+        if len(trimmed_projects) > 1:
+            trimmed_projects.pop()
+            continue
+        break
+
+    return trimmed_projects, trimmed_experience
 
 
 app = Flask(__name__)
@@ -733,6 +955,8 @@ Avoid repeating the same accomplishment across multiple projects or jobs.
 If a section is weak for this target job, return fewer stronger entries rather than forcing extra filler.
 Return at least 3 projects when the user has 3 or more available.
 Order projects from strongest and most relevant first to weakest and least relevant last.
+Include at most 3 work experience entries, ordered strongest and most relevant first.
+Prefer 2 work experience entries when that is enough to make the strongest one-page resume.
 Keep 2-4 bullets per project or experience entry.
 If an entry has 4 strong relevant bullets, keep all 4 instead of shortening it unnecessarily.
 Only include certifications that are genuinely relevant or meaningfully strengthen the application.
@@ -929,7 +1153,6 @@ def export_resume():
         format_certification_entries(certifications_entries) or profile.get("certifications", "")
     )
     certification_summary = build_certification_summary(certifications_entries, certifications_text)
-    certification_summary = build_certification_summary(certifications_entries, certifications_text)
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
@@ -953,6 +1176,20 @@ def export_resume():
         for line in tailored_skills.replace("\u2022", "-").splitlines()
         if line.strip()
     ]
+    project_entries_for_export = parse_resume_text_to_entries(tailored_projects)
+    experience_entries_for_export = parse_resume_text_to_entries(tailored_experience)
+    available_height = (page_height - 36) - bottom_margin
+    project_entries_for_export, experience_entries_for_export = trim_entries_for_one_page(
+        profile,
+        skills_lines,
+        project_entries_for_export,
+        experience_entries_for_export,
+        certification_summary,
+        content_width,
+        available_height
+    )
+    tailored_projects = format_resume_entries(project_entries_for_export)
+    tailored_experience = format_resume_entries(experience_entries_for_export)
 
     def new_page():
         nonlocal y
@@ -1319,6 +1556,7 @@ def export_resume_docx():
         "tailored_certifications",
         format_certification_entries(certifications_entries) or profile.get("certifications", "")
     )
+    certification_summary = build_certification_summary(certifications_entries, certifications_text)
 
     education_school = ""
     if profile.get("school"):
@@ -1327,6 +1565,21 @@ def export_resume_docx():
         education_school += f", {profile.get('school_location')}"
     education_grad = profile.get("expected_grad", "")
     education_degree = profile.get("degree", "")
+    skill_lines = [line.strip() for line in tailored_skills.splitlines() if line.strip()]
+    project_entries_for_export = parse_resume_text_to_entries(tailored_projects)
+    experience_entries_for_export = parse_resume_text_to_entries(tailored_experience)
+    available_height = (letter[1] - 36) - 36
+    project_entries_for_export, experience_entries_for_export = trim_entries_for_one_page(
+        profile,
+        skill_lines,
+        project_entries_for_export,
+        experience_entries_for_export,
+        certification_summary,
+        letter[0] - 72,
+        available_height
+    )
+    tailored_projects = format_resume_entries(project_entries_for_export)
+    tailored_experience = format_resume_entries(experience_entries_for_export)
 
     def parse_structured_text(text):
         sections = []
@@ -1428,7 +1681,6 @@ def export_resume_docx():
         if certification_summary:
             add_bullet_line(f"Certifications: {certification_summary}")
 
-    skill_lines = [line.strip() for line in tailored_skills.splitlines() if line.strip()]
     if skill_lines:
         add_section_heading("TECHNICAL SKILLS")
         cleaned_skills = []
