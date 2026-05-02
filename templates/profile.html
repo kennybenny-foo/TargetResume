@@ -686,6 +686,80 @@
           <button type="submit" class="primary-btn">Save Profile</button>
         </div>
       </section>
+
+      <section class="section-card">
+        <div class="section-header-row">
+          <h2>Account Settings</h2>
+        </div>
+
+        <div class="section-note">
+          Update your login email, change your password, or permanently delete your account here. These actions affect how you sign in, not just what appears on the resume.
+        </div>
+
+        <div class="top-grid" style="margin-top: 18px;">
+          <div class="card">
+            <h3 style="margin: 0 0 14px; font-size: 1.1rem; color: #0f172a;">Change Email</h3>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="account_current_email">Current Account Email</label>
+                <input type="email" id="account_current_email" value="{{ account_email or '' }}" readonly>
+              </div>
+              <div class="form-group full">
+                <label for="account_new_email">New Email</label>
+                <input type="email" id="account_new_email" placeholder="name@example.com">
+              </div>
+              <div class="form-group full">
+                <label for="account_email_password">Current Password</label>
+                <input type="password" id="account_email_password" placeholder="Enter current password">
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="button" id="changeEmailBtn" class="primary-btn">Update Email</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin: 0 0 14px; font-size: 1.1rem; color: #0f172a;">Change Password</h3>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="account_current_password">Current Password</label>
+                <input type="password" id="account_current_password" placeholder="Current password">
+              </div>
+              <div class="form-group">
+                <label for="account_new_password">New Password</label>
+                <input type="password" id="account_new_password" placeholder="At least 8 characters">
+              </div>
+              <div class="form-group">
+                <label for="account_confirm_password">Confirm New Password</label>
+                <input type="password" id="account_confirm_password" placeholder="Re-enter new password">
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="button" id="changePasswordBtn" class="primary-btn">Update Password</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 18px; border-color: #e6c3c3; background: #fffafa;">
+          <div class="section-header-row">
+            <h3 style="margin: 0; font-size: 1.1rem; color: #7f1d1d;">Delete Account</h3>
+          </div>
+          <p class="helper-text" style="margin-bottom: 16px; color: #7f1d1d;">
+            This permanently removes your account, profile, saved resumes, folders, and job tracker entries.
+          </p>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="delete_account_password">Current Password</label>
+              <input type="password" id="delete_account_password" placeholder="Enter current password to confirm">
+            </div>
+          </div>
+          <div class="button-row">
+            <button type="button" id="deleteAccountBtn" class="danger-btn">Delete Account</button>
+          </div>
+        </div>
+
+        <div id="accountSettingsStatus" class="status-message info" aria-live="polite"></div>
+      </section>
     </form>
   </main>
   <div id="appModal" class="modal-overlay" aria-hidden="true">
@@ -1199,6 +1273,18 @@
       status.className = "status-message info";
     }
 
+    function setAccountStatus(message, tone = "info") {
+      const status = document.getElementById("accountSettingsStatus");
+      status.textContent = message;
+      status.className = `status-message ${tone} show`;
+    }
+
+    function clearAccountStatus() {
+      const status = document.getElementById("accountSettingsStatus");
+      status.textContent = "";
+      status.className = "status-message info";
+    }
+
     function populateProfileFromImport(payload) {
       const fieldMap = {
         fullname: "fullname",
@@ -1392,6 +1478,147 @@
 
         clearInputs(["school", "school_location", "expected_grad", "degree"]);
         setImportStatus("Education cleared. Review the form and click Save Profile if you want to keep those changes.", "info");
+      });
+
+      document.getElementById("changeEmailBtn").addEventListener("click", async function () {
+        const button = this;
+        const newEmail = document.getElementById("account_new_email").value.trim();
+        const currentPassword = document.getElementById("account_email_password").value;
+
+        clearAccountStatus();
+
+        if (!newEmail || !currentPassword) {
+          setAccountStatus("Enter the new email and your current password first.", "error");
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Updating Email...";
+
+        try {
+          const formData = new FormData();
+          formData.append("new_email", newEmail);
+          formData.append("current_password", currentPassword);
+
+          const response = await fetch("/change-email", {
+            method: "POST",
+            body: formData
+          });
+          const payload = await response.json();
+
+          if (!response.ok || !payload.success) {
+            throw new Error(payload.error || "Could not update the email.");
+          }
+
+          document.getElementById("account_current_email").value = payload.email || newEmail;
+          document.getElementById("account_new_email").value = "";
+          document.getElementById("account_email_password").value = "";
+          document.getElementById("email").value = payload.email || newEmail;
+          trackEvent("account_email_changed");
+          setAccountStatus(payload.message || "Account email updated.", "info");
+        } catch (error) {
+          setAccountStatus(error.message || "Could not update the email.", "error");
+        } finally {
+          button.disabled = false;
+          button.textContent = "Update Email";
+        }
+      });
+
+      document.getElementById("changePasswordBtn").addEventListener("click", async function () {
+        const button = this;
+        const currentPassword = document.getElementById("account_current_password").value;
+        const newPassword = document.getElementById("account_new_password").value;
+        const confirmPassword = document.getElementById("account_confirm_password").value;
+
+        clearAccountStatus();
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          setAccountStatus("Fill out all password fields first.", "error");
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Updating Password...";
+
+        try {
+          const formData = new FormData();
+          formData.append("current_password", currentPassword);
+          formData.append("new_password", newPassword);
+          formData.append("confirm_password", confirmPassword);
+
+          const response = await fetch("/change-password", {
+            method: "POST",
+            body: formData
+          });
+          const payload = await response.json();
+
+          if (!response.ok || !payload.success) {
+            throw new Error(payload.error || "Could not update the password.");
+          }
+
+          document.getElementById("account_current_password").value = "";
+          document.getElementById("account_new_password").value = "";
+          document.getElementById("account_confirm_password").value = "";
+          trackEvent("account_password_changed");
+          setAccountStatus(payload.message || "Password updated.", "info");
+        } catch (error) {
+          setAccountStatus(error.message || "Could not update the password.", "error");
+        } finally {
+          button.disabled = false;
+          button.textContent = "Update Password";
+        }
+      });
+
+      document.getElementById("deleteAccountBtn").addEventListener("click", async function () {
+        const button = this;
+        const currentPassword = document.getElementById("delete_account_password").value;
+
+        clearAccountStatus();
+
+        if (!currentPassword) {
+          setAccountStatus("Enter your current password before deleting the account.", "error");
+          return;
+        }
+
+        const result = await openConfirmModal(
+          "Delete account permanently?",
+          "This will permanently remove your account, profile, saved resumes, folders, and job tracker entries. This action cannot be undone.",
+          {
+            eyebrow: "Account Settings",
+            cancelText: "Keep Account",
+            confirmText: "Delete Account"
+          }
+        );
+
+        if (!result.confirmed) {
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Deleting Account...";
+
+        try {
+          const formData = new FormData();
+          formData.append("current_password", currentPassword);
+
+          const response = await fetch("/delete-account", {
+            method: "POST",
+            body: formData
+          });
+          const payload = await response.json();
+
+          if (!response.ok || !payload.success) {
+            throw new Error(payload.error || "Could not delete the account.");
+          }
+
+          trackEvent("account_deleted");
+          allowNavigationWithoutWarning = true;
+          window.location.href = "/login";
+        } catch (error) {
+          setAccountStatus(error.message || "Could not delete the account.", "error");
+          button.disabled = false;
+          button.textContent = "Delete Account";
+        }
       });
 
       window.addEventListener("beforeunload", function (event) {

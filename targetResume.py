@@ -2005,8 +2005,13 @@ def profile():
 
     user_id = session["user_id"]
     profile_data = prepare_profile_for_view(profiles_collection.find_one({"user_id": user_id}))
+    user_doc = users_collection.find_one({"_id": ObjectId(user_id)}) or {}
 
-    return render_template("profile.html", profile=profile_data)
+    return render_template(
+        "profile.html",
+        profile=profile_data,
+        account_email=user_doc.get("email", "")
+    )
 
 
 @app.route("/import-profile-resume-pdf", methods=["POST"])
@@ -2146,6 +2151,131 @@ def save_profile():
     )
 
     return redirect(url_for("profile"))
+
+
+@app.route("/change-email", methods=["POST"])
+def change_email():
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    new_email = (request.form.get("new_email") or "").strip().lower()
+    current_password = request.form.get("current_password") or ""
+
+    if not new_email:
+        return jsonify({"success": False, "error": "Enter the new email address first."}), 400
+
+    if not current_password:
+        return jsonify({"success": False, "error": "Enter your current password to change the email."}), 400
+
+    user_doc = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user_doc:
+        session.clear()
+        return jsonify({"success": False, "error": "Account not found. Please sign in again."}), 404
+
+    if not check_password_hash(user_doc["password"], current_password):
+        return jsonify({"success": False, "error": "Current password is incorrect."}), 400
+
+    if new_email == (user_doc.get("email") or "").strip().lower():
+        return jsonify({"success": False, "error": "That email is already on your account."}), 400
+
+    existing_user = users_collection.find_one({
+        "email": new_email,
+        "_id": {"$ne": ObjectId(user_id)}
+    })
+    if existing_user:
+        return jsonify({"success": False, "error": "Another account is already using that email."}), 400
+
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"email": new_email}}
+    )
+    profiles_collection.update_one(
+        {"user_id": user_id},
+        {"$set": {"email": new_email}}
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Account email updated.",
+        "email": new_email
+    })
+
+
+@app.route("/change-password", methods=["POST"])
+def change_password():
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    current_password = request.form.get("current_password") or ""
+    new_password = request.form.get("new_password") or ""
+    confirm_password = request.form.get("confirm_password") or ""
+
+    if not current_password:
+        return jsonify({"success": False, "error": "Enter your current password first."}), 400
+
+    if not new_password:
+        return jsonify({"success": False, "error": "Enter a new password first."}), 400
+
+    if len(new_password) < 8:
+        return jsonify({"success": False, "error": "Use at least 8 characters for the new password."}), 400
+
+    if new_password != confirm_password:
+        return jsonify({"success": False, "error": "New password and confirmation do not match."}), 400
+
+    user_doc = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user_doc:
+        session.clear()
+        return jsonify({"success": False, "error": "Account not found. Please sign in again."}), 404
+
+    if not check_password_hash(user_doc["password"], current_password):
+        return jsonify({"success": False, "error": "Current password is incorrect."}), 400
+
+    if check_password_hash(user_doc["password"], new_password):
+        return jsonify({"success": False, "error": "Choose a password different from your current one."}), 400
+
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": generate_password_hash(new_password)}}
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Password updated."
+    })
+
+
+@app.route("/delete-account", methods=["POST"])
+def delete_account():
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    user_id = session["user_id"]
+    current_password = request.form.get("current_password") or ""
+
+    if not current_password:
+        return jsonify({"success": False, "error": "Enter your current password before deleting the account."}), 400
+
+    user_doc = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user_doc:
+        session.clear()
+        return jsonify({"success": False, "error": "Account not found. Please sign in again."}), 404
+
+    if not check_password_hash(user_doc["password"], current_password):
+        return jsonify({"success": False, "error": "Current password is incorrect."}), 400
+
+    users_collection.delete_one({"_id": ObjectId(user_id)})
+    profiles_collection.delete_one({"user_id": user_id})
+    resumes_collection.delete_many({"user_id": user_id})
+    jobs_collection.delete_many({"user_id": user_id})
+    folders_collection.delete_many({"user_id": user_id})
+    session.clear()
+
+    return jsonify({
+        "success": True,
+        "message": "Your account and saved data were deleted."
+    })
 
 
 @app.route("/signup", methods=["GET", "POST"])
