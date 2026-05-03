@@ -937,7 +937,8 @@ You are helping tailor a resume for a specific job.
 Use ONLY the user's provided information.
 Do NOT invent employers, projects, dates, degrees, metrics, or skills.
 Do NOT add tools, technologies, certifications, coursework, or achievements that are not explicitly present in the user's profile.
-Do NOT rewrite facts into stronger-sounding facts if that changes meaning.
+You may reword bullets to sound stronger, clearer, and more professional as long as the underlying facts stay true to the user's input.
+Do NOT exaggerate impact, seniority, ownership, scope, or metrics.
 Keep organization names, role names, dates, and locations accurate to the user's input.
 Do NOT create a professional summary.
 Rewrite only these sections:
@@ -951,6 +952,7 @@ Select only the strongest and most relevant details for this specific target job
 Do not include everything if that would make the resume too long.
 Prefer concise, high-impact bullets.
 Prefer stronger existing bullets over rewriting them into vague filler.
+For work experience especially, improve weak wording by tightening action verbs, clarity, and relevance to the target job while preserving the same meaning.
 Avoid repeating the same accomplishment across multiple projects or jobs.
 If a section is weak for this target job, return fewer stronger entries rather than forcing extra filler.
 Return at least 3 projects when the user has 3 or more available.
